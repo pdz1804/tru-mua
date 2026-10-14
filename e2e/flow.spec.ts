@@ -44,7 +44,7 @@ test('title → studio → door → inside → memory card', async ({ page }, in
   await expect(prompt).toContainText('Cây dù', { timeout: 15000 });
   // slow CI GPUs: the press is consumed on the next rendered frame, so retry until the card opens
   await expect(async () => {
-    if (!(await page.getByRole('dialog').isVisible())) await prompt.click({ timeout: 3000 });
+    if (!(await page.getByRole('dialog').isVisible())) await page.keyboard.press('KeyE');
     await expect(page.getByRole('dialog')).toContainText('che dù đưa em về', { timeout: 4000 });
   }).toPass({ timeout: 45000 });
   await shot(page, '6-memory', P);
