@@ -42,8 +42,11 @@ test('title → studio → door → inside → memory card', async ({ page }, in
   await tp(page, -2.3, -1.6);
   const prompt = page.locator('.prompt');
   await expect(prompt).toContainText('Cây dù', { timeout: 15000 });
-  await prompt.click();
-  await expect(page.getByRole('dialog')).toContainText('che dù đưa em về');
+  // slow CI GPUs: the press is consumed on the next rendered frame, so retry until the card opens
+  await expect(async () => {
+    if (!(await page.getByRole('dialog').isVisible())) await prompt.click({ timeout: 3000 });
+    await expect(page.getByRole('dialog')).toContainText('che dù đưa em về', { timeout: 4000 });
+  }).toPass({ timeout: 45000 });
   await shot(page, '6-memory', P);
   await page.getByRole('button', { name: /Cất lại/ }).click();
   await expect(page.getByText(/Kỷ niệm\s*1\/27/)).toBeVisible();
