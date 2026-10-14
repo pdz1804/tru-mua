@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const port = Number(process.env.E2E_PORT ?? 5191);
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 240_000,
+  timeout: 480_000, // CI renders WebGL in software (SwiftShader)
   use: {
     baseURL: `http://localhost:${port}`,
     launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] },
