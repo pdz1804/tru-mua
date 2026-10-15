@@ -2,9 +2,9 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { ContactShadows, Environment, OrbitControls } from '@react-three/drei';
 import { useGame, type Who } from './state/store';
-import { Title, Studio, Hud, MemoryCard } from './ui/Overlays';
+import { Title, Studio, Hud, MemoryCard, ChapterPlayer, Loader } from './ui/Overlays';
 import { Chibi } from './world/Chibi';
-import { attachKeyboard } from './game/input';
+import { attachKeyboard, setInputEnabled } from './game/input';
 
 const World = lazy(() => import('./world/World'));
 const touchDevice = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
@@ -55,7 +55,10 @@ function StudioScene({ focus }: { focus: Who }) {
 export default function App() {
   const phase = useGame((s) => s.phase);
   const [tab, setTab] = useState<Who>('su');
+  const modal = useGame((s) => !!s.active || !!s.chapter);
   useEffect(() => attachKeyboard(), []);
+  // Walking pauses while a memory card or a rain chapter is on screen.
+  useEffect(() => setInputEnabled(!modal), [modal]);
   const playing = phase === 'play';
   return (
     <div className="app">
@@ -69,9 +72,10 @@ export default function App() {
       </Canvas>
       {phase === 'title' && <Title />}
       {phase === 'studio' && <Studio tab={tab} setTab={setTab} />}
-      {playing && <Hud touch={touchDevice} />}
+      {playing && !modal && <Hud touch={touchDevice} />}
       <MemoryCard />
-      <Suspense fallback={<div className="loader">Đang mở cửa…</div>}>{null}</Suspense>
+      <ChapterPlayer />
+      <Loader />
     </div>
   );
 }

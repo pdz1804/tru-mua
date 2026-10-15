@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { useProgress } from '@react-three/drei';
 import { useGame, SU_DRESS, PHU_SHIRT, HAIR, type Who } from '../state/store';
 import { MEMORIES, memoryById } from '../content/memories';
+import { CHAPTERS, chapterById, isChoice, type Line } from '../content/chapters';
 import { onFocus, type Interactable } from '../game/interactions';
-import { press, stick, setInputEnabled, look } from '../game/input';
+import { press, stick, look } from '../game/input';
 import { toastBus } from '../lib/toast';
 
 export function Title() {
@@ -174,6 +176,7 @@ export function Hud({ touch }: { touch: boolean }) {
   const [focus, setFocus] = useState<Interactable | null>(null);
   const [toast, setToast] = useState('');
   const seen = useGame((s) => s.seen.length);
+  const chapters = useGame((s) => s.chaptersDone.length);
   const lead = useGame((s) => s.lead);
   const twoPlayer = useGame((s) => s.twoPlayer);
   const setPhase = useGame((s) => s.setPhase);
@@ -228,6 +231,10 @@ export function Hud({ touch }: { touch: boolean }) {
           Kỷ niệm{' '}
           <b>
             {seen}/{MEMORIES.length}
+          </b>{' '}
+          · Chương mưa{' '}
+          <b>
+            {chapters}/{CHAPTERS.length}
           </b>
         </span>
         <div className="row">
@@ -288,25 +295,47 @@ export function Hud({ touch }: { touch: boolean }) {
   );
 }
 
+/**
+ * Modal behaviour shared by the memory card and the chapter player: focus moves into the
+ * dialog, Tab cycles inside it, Escape closes it, and focus returns to where it was.
+ */
+function useDialog(ref: React.RefObject<HTMLElement>, open: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const before = document.activeElement as HTMLElement | null;
+    const items = () => [...(ref.current?.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])') ?? [])];
+    (ref.current?.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0])?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Tab') {
+        const list = items();
+        if (!list.length) return;
+        const i = list.indexOf(document.activeElement as HTMLElement);
+        const next = e.shiftKey ? (i <= 0 ? list.length - 1 : i - 1) : i === list.length - 1 ? 0 : i + 1;
+        e.preventDefault();
+        list[next].focus();
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('keydown', key);
+      before?.focus?.();
+    };
+  }, [ref, open, onClose]);
+}
+
 export function MemoryCard() {
   const active = useGame((s) => s.active);
   const close = useGame((s) => s.close);
-  const btn = useRef<HTMLButtonElement>(null);
+  const card = useRef<HTMLElement>(null);
   const m = active ? memoryById(active) : null;
-  useEffect(() => {
-    setInputEnabled(!m);
-    if (!m) return;
-    btn.current?.focus();
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-    };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, [m, close]);
+  useDialog(card, !!m, close);
   if (!m) return null;
   return (
     <div className="veil" onClick={(e) => e.target === e.currentTarget && close()}>
-      <article className="card" role="dialog" aria-modal="true" aria-labelledby="mem-title">
+      <article ref={card} className="card" role="dialog" aria-modal="true" aria-labelledby="mem-title">
         {m.date && <div className="date">{m.date}</div>}
         <h3 id="mem-title">{m.title}</h3>
         {m.body.map((p, i) => (
@@ -323,11 +352,122 @@ export function MemoryCard() {
         )}
         <div className="foot">
           <span style={{ fontSize: 12, opacity: 0.7 }}>Phú gửi Su</span>
-          <button ref={btn} type="button" className="btn" onClick={close}>
+          <button data-autofocus type="button" className="btn" onClick={close}>
             Cất lại ♡
           </button>
         </div>
       </article>
+    </div>
+  );
+}
+
+/**
+ * A rain chapter told as a visual-novel scene over the café: one line at a time, one choice in
+ * the middle, then a postcard. Advance with the button (Enter/Space on it); Escape leaves.
+ */
+export function ChapterPlayer() {
+  const id = useGame((s) => s.chapter);
+  const leave = useGame((s) => s.leaveChapter);
+  const finish = useGame((s) => s.finishChapter);
+  const ch = id ? chapterById(id) : null;
+  const box = useRef<HTMLElement>(null);
+  const [step, setStep] = useState(0);
+  const [reply, setReply] = useState<Line[]>([]);
+  const [r, setR] = useState(0);
+  useEffect(() => {
+    setStep(0);
+    setReply([]);
+    setR(0);
+  }, [id]);
+  useDialog(box, !!ch, leave);
+  const done = !!ch && step >= ch.beats.length;
+  useEffect(() => {
+    if (done) finish();
+  }, [done, finish]);
+  // Keep focus on the advance button as lines change so Enter/Space keep working.
+  useEffect(() => {
+    box.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+  }, [step, r, reply]);
+  if (!ch) return null;
+  const beat = ch.beats[step];
+  const inReply = reply.length > 0;
+  const line: Line | null = inReply ? reply[r] : beat && !isChoice(beat) ? beat : null;
+  const next = () => {
+    if (inReply && r < reply.length - 1) return setR(r + 1);
+    setReply([]);
+    setR(0);
+    setStep(step + 1);
+  };
+  return (
+    <div className="chapter">
+      <header className="chapter-head">
+        <span className="date">{ch.date}</span>
+        <div>
+          <h3 id="ch-title">{ch.title}</h3>
+          <p>{ch.mood}</p>
+        </div>
+      </header>
+      <section ref={box} className="chapter-box glass" role="dialog" aria-modal="true" aria-labelledby="ch-title" aria-live="polite">
+        {done ? (
+          <div className="postcard">
+            <span className="eyebrow">Bưu thiếp · {ch.date}</span>
+            <p>{ch.postcard}</p>
+            <div className="row">
+              <button type="button" className="btn" onClick={() => setStep(0)}>
+                Xem lại
+              </button>
+              <button data-autofocus type="button" className="btn gold" onClick={leave}>
+                Cất vào album ♡
+              </button>
+            </div>
+          </div>
+        ) : line ? (
+          <>
+            {line.who && <b className={`who who-${line.who === 'Su' ? 'su' : 'phu'}`}>{line.who}</b>}
+            <p className={line.who ? '' : 'narration'}>{line.text}</p>
+            <div className="row chapter-foot">
+              <span className="eyebrow">
+                {Math.min(step + 1, ch.beats.length)}/{ch.beats.length}
+              </span>
+              <button data-autofocus type="button" className="btn gold" onClick={next}>
+                Tiếp ▸
+              </button>
+            </div>
+          </>
+        ) : beat && isChoice(beat) ? (
+          <>
+            <p className="narration">{beat.prompt}</p>
+            <div className="choices">
+              {beat.options.map((o, i) => (
+                <button key={o.label} data-autofocus={i === 0 ? true : undefined} type="button" className="btn" onClick={() => setReply(o.reply)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+        <button type="button" className="chapter-x" aria-label="Rời chương" onClick={leave}>
+          ✕
+        </button>
+      </section>
+    </div>
+  );
+}
+
+/** Shown over the canvas while the lazily loaded 3D world and its assets stream in. */
+export function Loader() {
+  const { active, progress } = useProgress();
+  const [show, setShow] = useState(false);
+  // Avoid a flash for cached loads; only show when loading takes a moment.
+  useEffect(() => {
+    if (!active) return setShow(false);
+    const t = setTimeout(() => setShow(true), 250);
+    return () => clearTimeout(t);
+  }, [active]);
+  if (!show) return null;
+  return (
+    <div className="loading glass" role="status">
+      Đang mở cửa… {Math.round(progress)}%
     </div>
   );
 }

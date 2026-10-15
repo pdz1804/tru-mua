@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -68,6 +68,17 @@ export function Prop({
     g.add(root);
     return g;
   }, [scene, height, width, tint, shadows]);
+
+  // The cloned materials belong to this instance only; free them when it unmounts.
+  // Geometry and textures stay shared with the cached GLTF, so they are left alone.
+  useEffect(
+    () => () =>
+      obj.traverse((o) => {
+        const m = (o as THREE.Mesh).material;
+        if (m) (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose());
+      }),
+    [obj],
+  );
 
   const node = <primitive object={obj} />;
   return collide ? (
