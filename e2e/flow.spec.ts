@@ -69,8 +69,23 @@ test('title → studio → door → inside → memory card', async ({ page }, in
   await album.click();
   await expect(page.getByText(/Chương mưa\s*1\/3/)).toBeVisible();
 
+  // ambient rain toggles on and off without errors
+  await page.getByRole('button', { name: /Tiếng mưa: tắt/ }).click();
+  await page.getByRole('button', { name: /Tiếng mưa: bật/ }).click();
+
   await tp(page, 4, -6);
   await page.waitForTimeout(2500);
   await shot(page, '9-room', P);
   expect(errors.filter((e) => !/fonts\.g|net::ERR|favicon/.test(e))).toEqual([]);
+});
+
+test('album reopens memories from the title screen', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('tru-mua-v1', JSON.stringify({ state: { seen: ['yellow-umbrella'], chaptersDone: ['rain-2507'] }, version: 0 })),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Album kỷ niệm' }).click();
+  await expect(page.locator('.album .postcard')).toContainText('Trung Nguyên');
+  await page.locator('.album-item').first().click();
+  await expect(page.getByRole('dialog')).toContainText('che dù đưa em về');
 });

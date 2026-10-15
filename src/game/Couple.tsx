@@ -6,6 +6,7 @@ import { Chibi, type ChibiHandle } from '../world/Chibi';
 import { useGame } from '../state/store';
 import { axis, consume, look, resetPresses, stick } from './input';
 import { updateFocus, focused } from './interactions';
+import { setIndoor } from './audio';
 import { angleDelta, cameraRelative, clamp, damp } from '../lib/math';
 import { toastBus } from '../lib/toast';
 
@@ -99,6 +100,7 @@ export function Couple({ spawn }: { spawn: [number, number, number] }) {
         }),
     };
   }, [P, S, spawn, camera]);
+  const indoor = useRef(false);
   useFrame((_, rawDt) => {
     // 0.1 s cap: slow devices still move at real speed; the controller resolves collisions per step
     const dt = Math.min(rawDt, 0.1);
@@ -166,6 +168,8 @@ export function Couple({ spawn }: { spawn: [number, number, number] }) {
     const lt = L.body.current?.translation();
     const ot = F.body.current?.translation();
     if (lt) {
+      const inside = lt.z < -0.3;
+      if (inside !== indoor.current) setIndoor((indoor.current = inside));
       const f = updateFocus(lt.x, lt.z);
       if (!f && twoPlayer && ot) updateFocus(ot.x, ot.z);
       if (consume('interact') && !active) focused()?.onUse();
