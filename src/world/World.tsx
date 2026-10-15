@@ -8,7 +8,6 @@ import { Couple } from '../game/Couple';
 import { register } from '../game/interactions';
 import { useGame } from '../state/store';
 import { memoryById } from '../content/memories';
-import { CHAPTERS } from '../content/chapters';
 import { toastBus } from '../lib/toast';
 import { A, Prop } from './Prop';
 import { Rain } from './Rain';
@@ -612,33 +611,6 @@ function MemorySpot({ s }: { s: Spot }) {
   );
 }
 
-/** The rain chapters: three standing frames in the middle of the back room, one per date. */
-const CHAPTER_AT: [number, number][] = [
-  [-3.6, -9.9],
-  [-0.7, -9.9],
-  [2.2, -9.9],
-];
-
-function ChapterFrame({ i }: { i: number }) {
-  const c = CHAPTERS[i];
-  const [x, z] = CHAPTER_AT[i];
-  const play = useGame((st) => st.playChapter);
-  const done = useGame((st) => st.chaptersDone.includes(c.id));
-  useEffect(() => register({ id: c.id, x, z, radius: 1.3, prompt: `Chương mưa ${c.date} · ${c.title}`, onUse: () => play(c.id) }), [c, x, z, play]);
-  return (
-    <group position={[x, 0.02, z]}>
-      <Prop src="furniture-kaykit/pictureframe_standing_B.gltf" height={1.25} />
-      <Text position={[0, 0.66, 0.3]} fontSize={0.13} color="#3a2a05" anchorX="center" maxWidth={1.1} textAlign="center">
-        {c.title}
-      </Text>
-      <Text position={[0, 0.46, 0.3]} fontSize={0.09} color="#6b5532" anchorX="center">
-        {'Chương mưa · ' + c.date}
-      </Text>
-      {!done && <Sparkles position={[0, 1.2, 0]} count={14} scale={[0.9, 1.1, 0.6]} size={3.5} color="#9cc8ff" speed={0.6} />}
-    </group>
-  );
-}
-
 /** Slow establishing shot for the title screen. */
 function PreviewCamera() {
   const { camera } = useThree();
@@ -678,9 +650,6 @@ export default function World({ preview = false }: { preview?: boolean }) {
           <Interior />
           {SPOTS.map((s) => (
             <MemorySpot key={s.id} s={s} />
-          ))}
-          {CHAPTERS.map((c, i) => (
-            <ChapterFrame key={c.id} i={i} />
           ))}
         </Suspense>
         {!preview && <Couple spawn={SPAWN} />}

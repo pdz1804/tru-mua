@@ -33,10 +33,6 @@ interface State {
   seen: string[];
   /** The memory card currently on screen, or null. */
   active: string | null;
-  /** The rain chapter currently playing, or null. */
-  chapter: string | null;
-  /** Rain chapters finished at least once (their postcards). */
-  chaptersDone: string[];
   doorOpen: boolean;
   sound: boolean;
   setPhase: (p: Phase) => void;
@@ -47,9 +43,6 @@ interface State {
   setPhu: (patch: Partial<PhuLook>) => void;
   open: (id: string) => void;
   close: () => void;
-  playChapter: (id: string) => void;
-  finishChapter: () => void;
-  leaveChapter: () => void;
   setDoorOpen: (v: boolean) => void;
   setSound: (v: boolean) => void;
 }
@@ -64,8 +57,6 @@ export const useGame = create<State>()(
       phu: { shirt: PHU_SHIRT[0], pants: '#23252e', hair: HAIR[0], jacket: true },
       seen: [],
       active: null,
-      chapter: null,
-      chaptersDone: [],
       doorOpen: false,
       sound: false,
       setPhase: (phase) => set({ phase }),
@@ -76,9 +67,6 @@ export const useGame = create<State>()(
       setPhu: (patch) => set((s) => ({ phu: { ...s.phu, ...patch } })),
       open: (id) => set((s) => ({ active: id, seen: s.seen.includes(id) ? s.seen : [...s.seen, id] })),
       close: () => set({ active: null }),
-      playChapter: (chapter) => set({ chapter }),
-      finishChapter: () => set((s) => ({ chaptersDone: !s.chapter || s.chaptersDone.includes(s.chapter) ? s.chaptersDone : [...s.chaptersDone, s.chapter] })),
-      leaveChapter: () => set({ chapter: null }),
       setDoorOpen: (doorOpen) => set({ doorOpen }),
       setSound: (sound) => set({ sound }),
     }),
@@ -86,7 +74,7 @@ export const useGame = create<State>()(
       name: 'tru-mua-v1',
       storage: createJSONStorage(() => localStorage),
       // Only the couple's choices and progress persist; transient UI state does not.
-      partialize: (s) => ({ su: s.su, phu: s.phu, seen: s.seen, chaptersDone: s.chaptersDone, twoPlayer: s.twoPlayer, sound: s.sound }),
+      partialize: (s) => ({ su: s.su, phu: s.phu, seen: s.seen, twoPlayer: s.twoPlayer, sound: s.sound }),
     },
   ),
 );

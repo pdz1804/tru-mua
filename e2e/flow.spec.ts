@@ -51,26 +51,8 @@ test('title → studio → door → inside → memory card', async ({ page }, in
   await page.getByRole('button', { name: /Cất lại/ }).click();
   await expect(page.getByText(/Kỷ niệm\s*1\/27/)).toBeVisible();
 
-  // rain chapter: walk up to the middle frame, play it through the choice to the postcard
-  await tp(page, -0.7, -8.9);
-  await expect(prompt).toContainText('Chương mưa 25 · 07', { timeout: 15000 });
-  await expect(async () => {
-    if (!(await page.locator('.chapter').isVisible())) await page.keyboard.press('KeyE');
-    await expect(page.locator('.chapter')).toContainText('Sala, hoa và Trung Nguyên', { timeout: 4000 });
-  }).toPass({ timeout: 45000 });
-  await shot(page, '7-chapter', P);
-  const album = page.getByRole('button', { name: /Cất vào album/ });
-  for (let i = 0; i < 30 && !(await album.isVisible()); i++) {
-    const pick = page.getByRole('button', { name: 'Góc có đèn vàng' });
-    await ((await pick.isVisible()) ? pick : page.getByRole('button', { name: /Tiếp/ })).click();
-  }
-  await expect(page.locator('.postcard')).toContainText('dạ đồng ý');
-  await shot(page, '8-postcard', P);
-  await album.click();
-  await expect(page.getByText(/Chương mưa\s*1\/3/)).toBeVisible();
-
   await tp(page, 4, -6);
   await page.waitForTimeout(2500);
-  await shot(page, '9-room', P);
+  await shot(page, '7-room', P);
   expect(errors.filter((e) => !/fonts\.g|net::ERR|favicon/.test(e))).toEqual([]);
 });

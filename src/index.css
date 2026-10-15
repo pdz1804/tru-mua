@@ -436,119 +436,13 @@ button {
   background: #3a2a05;
   color: var(--paper);
 }
-.loading {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  padding: 10px 18px;
-  border-radius: 99px;
-  font-family: var(--f-disp);
-  font-size: 18px;
-  color: var(--muted);
-  pointer-events: none;
-}
-
-/* ---------- rain chapter (visual-novel scene over the café) ---------- */
-.chapter {
+.loader {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: 16px;
-  background: linear-gradient(180deg, rgba(4, 7, 14, 0.7), rgba(4, 7, 14, 0.05) 30%, rgba(4, 7, 14, 0.15) 60%, rgba(4, 7, 14, 0.75));
-  animation: fade 0.4s;
-}
-.chapter-head {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  max-width: 760px;
-}
-.chapter-head .date {
-  white-space: nowrap;
+  place-items: center;
+  background: var(--night);
   font-family: var(--f-disp);
-  font-size: 44px;
-  line-height: 1;
-  color: var(--gold);
-}
-.chapter-head h3 {
-  margin: 0;
-  font-family: var(--f-disp);
-  font-weight: 400;
-  font-size: 26px;
-}
-.chapter-head p {
-  margin: 2px 0 0;
+  font-size: 28px;
   color: var(--muted);
-  font-size: 14px;
-}
-.chapter-box {
-  grid-row: 3;
-  position: relative;
-  width: min(760px, 100%);
-  justify-self: center;
-  border-radius: 18px;
-  padding: 18px 20px 14px;
-  display: grid;
-  gap: 10px;
-  min-height: 150px;
-}
-.chapter-box p {
-  margin: 0;
-  font-size: 17px;
-  line-height: 1.65;
-}
-.chapter-box .narration {
-  font-style: italic;
-  color: var(--muted);
-}
-.chapter-box .who {
-  font-family: var(--f-disp);
-  font-size: 20px;
-  font-weight: 400;
-}
-.who-su {
-  color: var(--su);
-}
-.who-phu {
-  color: var(--phu);
-}
-.chapter-foot {
-  justify-content: space-between;
-}
-.choices {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-.postcard {
-  display: grid;
-  gap: 12px;
-  background: var(--paper);
-  color: var(--paper-ink);
-  border-radius: 12px;
-  padding: 16px 18px;
-  transform: rotate(-0.8deg);
-  animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
-}
-.postcard p {
-  font-family: var(--f-disp);
-  font-size: 20px;
-}
-.postcard .btn:not(.gold) {
-  background: transparent;
-  color: var(--paper-ink);
-  border-color: rgba(58, 42, 5, 0.3);
-}
-.chapter-x {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  font-size: 16px;
-  padding: 6px;
-  cursor: pointer;
 }

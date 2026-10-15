@@ -10,7 +10,6 @@ Su and Phú start on a rainy Saigon sidewalk in front of a café door. Inside th
 2. **Studio ("Hôm nay mặc gì nhỉ?").** Dress Su and Phú: dress, shirt and hair colours, the Hello Kitty bow, the firefly necklace and Phú's jacket. Choices persist across reloads.
 3. **The door.** The couple spawns on the sidewalk. Walk up, open the door, step in.
 4. **The room.** Walk around freely. Each memory glows until it has been opened; press `E` (or tap) to read it.
-5. **Rain chapters.** Three standing frames at the back of the room (07·07, 25·07, 13·09) play a short scene with one choice and end with a postcard.
 
 ## Controls
 
@@ -35,7 +34,6 @@ Su and Phú start on a rainy Saigon sidewalk in front of a café door. Inside th
 ```
 src/
   content/memories.ts   the 27 memories (copy lives here, nowhere else)
-  content/chapters.ts   the three rain chapters (lines, one choice, postcard)
   state/store.ts        phase, looks, seen memories (persisted)
   game/                 input actions, interactions registry, Couple (controller + camera)
   world/                World (street, facade, door, room, memory spots), Chibi, Prop, Rain, Details
