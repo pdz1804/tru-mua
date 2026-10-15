@@ -10,8 +10,6 @@ import { toastBus } from '../lib/toast';
 export function Title() {
   const setPhase = useGame((s) => s.setPhase);
   const seen = useGame((s) => s.seen.length);
-  const [album, setAlbum] = useState(false);
-  if (album) return <Album onBack={() => setAlbum(false)} />;
   return (
     <div className="title">
       <span className="eyebrow">Dành riêng cho Su, từ Phú</span>
@@ -24,11 +22,6 @@ export function Title() {
         <button className="btn gold" type="button" onClick={() => setPhase('studio')} autoFocus>
           Bắt đầu
         </button>
-        {seen > 0 && (
-          <button className="btn glass" type="button" onClick={() => setAlbum(true)}>
-            Album kỷ niệm
-          </button>
-        )}
         {seen > 0 && (
           <span className="eyebrow">
             Đã mở {seen}/{MEMORIES.length} kỷ niệm
@@ -184,8 +177,6 @@ export function Hud({ touch }: { touch: boolean }) {
   const [toast, setToast] = useState('');
   const seen = useGame((s) => s.seen.length);
   const chapters = useGame((s) => s.chaptersDone.length);
-  const sound = useGame((s) => s.sound);
-  const setSound = useGame((s) => s.setSound);
   const lead = useGame((s) => s.lead);
   const twoPlayer = useGame((s) => s.twoPlayer);
   const setPhase = useGame((s) => s.setPhase);
@@ -248,9 +239,6 @@ export function Hud({ touch }: { touch: boolean }) {
         </span>
         <div className="row">
           {!twoPlayer && <span className="pill glass">Đang đi: {lead === 'phu' ? 'Phú' : 'Su'}</span>}
-          <button type="button" className="btn glass" aria-pressed={sound} onClick={() => setSound(!sound)}>
-            {sound ? 'Tiếng mưa: bật' : 'Tiếng mưa: tắt'}
-          </button>
           <button type="button" className="btn glass" onClick={() => setPhase('studio')}>
             Thay đồ
           </button>
@@ -480,49 +468,6 @@ export function Loader() {
   return (
     <div className="loading glass" role="status">
       Đang mở cửa… {Math.round(progress)}%
-    </div>
-  );
-}
-
-/** Everything already opened, readable again from the title screen without entering the café. */
-function Album({ onBack }: { onBack: () => void }) {
-  const seen = useGame((s) => s.seen);
-  const done = useGame((s) => s.chaptersDone);
-  const open = useGame((s) => s.open);
-  const postcards = CHAPTERS.filter((c) => done.includes(c.id));
-  const memories = seen.map(memoryById).filter((m): m is NonNullable<typeof m> => !!m);
-  return (
-    <div className="album">
-      <header className="row album-head">
-        <div>
-          <span className="eyebrow">Những gì hai đứa đã mở</span>
-          <h2>Album kỷ niệm</h2>
-        </div>
-        <button type="button" className="btn glass" onClick={onBack} autoFocus>
-          ◂ Quay lại
-        </button>
-      </header>
-      {postcards.length > 0 && (
-        <section className="album-grid">
-          {postcards.map((c) => (
-            <article key={c.id} className="postcard">
-              <span className="eyebrow">Bưu thiếp · {c.date}</span>
-              <b>{c.title}</b>
-              <p>{c.postcard}</p>
-            </article>
-          ))}
-        </section>
-      )}
-      <section className="album-grid">
-        {memories.map((m) => (
-          <button key={m.id} type="button" className="album-item" onClick={() => open(m.id)}>
-            {m.date && <span className="date">{m.date}</span>}
-            <b>{m.title}</b>
-            <span>{m.hint}</span>
-          </button>
-        ))}
-      </section>
-      <span className="credit">Phu Nguyen — HCMC, VN</span>
     </div>
   );
 }

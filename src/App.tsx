@@ -5,7 +5,6 @@ import { useGame, type Who } from './state/store';
 import { Title, Studio, Hud, MemoryCard, ChapterPlayer, Loader } from './ui/Overlays';
 import { Chibi } from './world/Chibi';
 import { attachKeyboard, setInputEnabled } from './game/input';
-import { cue, setSoundEnabled } from './game/audio';
 
 const World = lazy(() => import('./world/World'));
 const touchDevice = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
@@ -58,19 +57,6 @@ export default function App() {
   const [tab, setTab] = useState<Who>('su');
   const modal = useGame((s) => !!s.active || !!s.chapter);
   useEffect(() => attachKeyboard(), []);
-  const sound = useGame((s) => s.sound);
-  useEffect(() => setSoundEnabled(sound), [sound]);
-  // One-shot cues follow state changes, so UI code never has to remember to play them.
-  useEffect(
-    () =>
-      useGame.subscribe((s, prev) => {
-        if (s.doorOpen && !prev.doorOpen) cue('door');
-        if (s.active && s.active !== prev.active) cue('memory');
-        if (s.chapter && s.chapter !== prev.chapter) cue('page');
-        if (s.chaptersDone.length > prev.chaptersDone.length) cue('postcard');
-      }),
-    [],
-  );
   // Walking pauses while a memory card or a rain chapter is on screen.
   useEffect(() => setInputEnabled(!modal), [modal]);
   const playing = phase === 'play';

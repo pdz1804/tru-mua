@@ -11,7 +11,6 @@ Su and Phú start on a rainy Saigon sidewalk in front of a café door. Inside th
 3. **The door.** The couple spawns on the sidewalk. Walk up, open the door, step in.
 4. **The room.** Walk around freely. Each memory glows until it has been opened; press `E` (or tap) to read it.
 5. **Rain chapters.** Three standing frames at the back of the room (07·07, 25·07, 13·09) play a short scene with one choice and end with a postcard.
-6. **Album.** From the title screen, reread every opened memory and postcard. Ambient rain (muffled indoors), a door bell and chimes are synthesised with Web Audio; off by default, toggled from the HUD. There is no music.
 
 ## Controls
 
