@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
+
+jobs:
+  deploy:
+    # only a green CI run from a push to this repository (never a fork's pull request)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      # No long-lived key: WIF mints a short-lived token through a provider pinned to this repo's main branch.
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - name: Deploy hosting
+        run: npx firebase-tools@13.29.1 deploy --only hosting:tru-mua --project gen-lang-client-0992083758 --non-interactive
+      # A green deploy only means files uploaded; check the page is actually served.
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          url=https://tru-mua.web.app
+          # read the whole page first: piping into grep -q closes early and makes curl exit 23
+          html=$(curl -sSf --max-time 20 "$url")
+          grep -q '<div id="root">' <<<"$html"
+          echo "live: $url"

@@ -1,0 +1,4 @@
+{
+  "projects": { "default": "gen-lang-client-0992083758" },
+  "targets": { "gen-lang-client-0992083758": { "hosting": { "tru-mua": ["tru-mua"] } } }
+}
