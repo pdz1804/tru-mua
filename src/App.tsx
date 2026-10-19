@@ -7,6 +7,8 @@ import { Chibi } from './world/Chibi';
 import { attachKeyboard } from './game/input';
 
 const World = lazy(() => import('./world/World'));
+// the rain chapters bring their own renderer; loaded only when a chapter starts
+const ChapterView = lazy(() => import('./chapters/ChapterView'));
 const touchDevice = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
 /** The dressing-room preview: both characters on a soft-lit turntable. */
@@ -56,7 +58,19 @@ export default function App() {
   const phase = useGame((s) => s.phase);
   const [tab, setTab] = useState<Who>('su');
   useEffect(() => attachKeyboard(), []);
+  // test hook: e2e drives the store directly (dev builds only)
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __store?: typeof useGame }).__store = useGame;
+  }, []);
   const playing = phase === 'play';
+  if (phase === 'chapter')
+    return (
+      <div className="app">
+        <Suspense fallback={<div className="loader">Trời đang chuyển mưa…</div>}>
+          <ChapterView />
+        </Suspense>
+      </div>
+    );
   return (
     <div className="app">
       <Canvas

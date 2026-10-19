@@ -1,13 +1,56 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame, SU_DRESS, PHU_SHIRT, HAIR, type Who } from '../state/store';
 import { MEMORIES, memoryById } from '../content/memories';
+import { CHAPTER_META } from '../chapters/catalog';
+import ChapterMenu from '../chapters/ChapterMenu';
 import { onFocus, type Interactable } from '../game/interactions';
 import { press, stick, setInputEnabled, look } from '../game/input';
 import { toastBus } from '../lib/toast';
 
+/** Screen-reader text for a postcard's stamp dots: words, never a count. */
+const stampsLabel = (stamps: { label: string; earned: boolean }[]) => {
+  const got = stamps.filter((s) => s.earned);
+  if (got.length === 0) return 'Chưa có dấu nào';
+  return got.length === stamps.length ? 'Đủ dấu' : 'Đã có dấu';
+};
+
+/** The finished chapters' postcards as a row of cards, one slot per chapter; stamps are dots, never a count. */
+function Album() {
+  const postcards = useGame((s) => s.postcards);
+  return (
+    <div className="album">
+      {CHAPTER_META.map((c) => {
+        const p = postcards.find((x) => x.id === c.id);
+        if (!p)
+          return (
+            <div key={c.id} className="pc empty">
+              <b>{c.date}</b>
+              <span>Chưa có bưu thiếp</span>
+            </div>
+          );
+        return (
+          <div key={c.id} className="pc">
+            {p.img && <img src={p.img} alt={p.title} />}
+            <b>{p.date}</b>
+            <span>{p.title}</span>
+            <span className="dots" role="img" aria-label={stampsLabel(p.stamps)}>
+              {p.stamps.map((s) => (
+                <i key={s.label} className={s.earned ? 'on' : ''} />
+              ))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Title() {
   const setPhase = useGame((s) => s.setPhase);
   const seen = useGame((s) => s.seen.length);
+  const postcards = useGame((s) => s.postcards);
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   return (
     <div className="title">
       <span className="eyebrow">Dành riêng cho Su, từ Phú</span>
@@ -26,6 +69,25 @@ export function Title() {
           </span>
         )}
       </div>
+      <button type="button" className="lv chapter-entry" onClick={() => setMenu(true)} aria-label="Chương mưa: chọn một chương để chơi ngay">
+        <span className="eyebrow">Chương mưa</span>
+        <span className="t">Ba cơn mưa, ba ngày thật. Chơi thẳng từ đây.</span>
+        <span className="chips">
+          {CHAPTER_META.map((c) => (
+            <span key={c.id} className={`chip ${postcards.some((p) => p.id === c.id) ? 'on' : ''}`}>
+              {postcards.some((p) => p.id === c.id) ? '✓ ' : ''}
+              {c.date}
+            </span>
+          ))}
+        </span>
+      </button>
+      {postcards.length > 0 && (
+        <div style={{ display: 'grid', gap: 6 }}>
+          <span className="eyebrow">Album bưu thiếp</span>
+          <Album />
+        </div>
+      )}
+      {menu && <ChapterMenu onClose={closeMenu} />}
       <span className="credit">Phu Nguyen — HCMC, VN</span>
     </div>
   );
@@ -177,6 +239,8 @@ export function Hud({ touch }: { touch: boolean }) {
   const lead = useGame((s) => s.lead);
   const twoPlayer = useGame((s) => s.twoPlayer);
   const setPhase = useGame((s) => s.setPhase);
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   useEffect(() => onFocus(setFocus), []);
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
@@ -232,6 +296,9 @@ export function Hud({ touch }: { touch: boolean }) {
         </span>
         <div className="row">
           {!twoPlayer && <span className="pill glass">Đang đi: {lead === 'phu' ? 'Phú' : 'Su'}</span>}
+          <button type="button" className="btn glass rain" onClick={() => setMenu(true)}>
+            Chương mưa
+          </button>
           <button type="button" className="btn glass" onClick={() => setPhase('studio')}>
             Thay đồ
           </button>
@@ -242,6 +309,7 @@ export function Hud({ touch }: { touch: boolean }) {
           {toast}
         </div>
       )}
+      {menu && <ChapterMenu onClose={closeMenu} />}
       {focus && (
         <button type="button" className="prompt glass" onClick={() => press('interact')}>
           {!touch && <kbd>E</kbd>} {focus.prompt}

@@ -8,6 +8,7 @@ import { Couple } from '../game/Couple';
 import { register } from '../game/interactions';
 import { useGame } from '../state/store';
 import { memoryById } from '../content/memories';
+import { CHAPTER_META } from '../chapters/catalog';
 import { toastBus } from '../lib/toast';
 import { A, Prop } from './Prop';
 import { Rain } from './Rain';
@@ -611,6 +612,108 @@ function MemorySpot({ s }: { s: Spot }) {
   );
 }
 
+/** The three rain chapters: standing frames across the back of the room, one per date. */
+const CHAPTER_AT: [number, number][] = [
+  [-3.6, -9.9],
+  [-0.7, -9.9],
+  [2.2, -9.9],
+];
+
+function ChapterFrame({ i }: { i: number }) {
+  const c = CHAPTER_META[i];
+  const [x, z] = CHAPTER_AT[i];
+  const play = useGame((st) => st.playChapter);
+  const done = useGame((st) => st.postcards.some((p) => p.id === c.id));
+  useEffect(() => register({ id: c.id, x, z, radius: 1.3, prompt: `Vào chương mưa ${c.date} · ${c.title}`, onUse: () => play(c.id) }), [c, x, z, play]);
+  return (
+    <group position={[x, 0.02, z]}>
+      <Prop src="furniture-kaykit/pictureframe_standing_B.gltf" height={1.25} />
+      <Text position={[0, 0.66, 0.3]} fontSize={0.13} color="#3a2a05" anchorX="center" maxWidth={1.1} textAlign="center">
+        {c.title}
+      </Text>
+      <Text position={[0, 0.46, 0.3]} fontSize={0.09} color="#6b5532" anchorX="center">
+        {'Chương mưa · ' + c.date}
+      </Text>
+      {!done && <Sparkles position={[0, 1.2, 0]} count={14} scale={[0.9, 1.1, 0.6]} size={3.5} color="#9cc8ff" speed={0.6} />}
+    </group>
+  );
+}
+
+/*
+ * Wayfinding to the rain chapters: dots of light run from just inside the door straight back to the three frames,
+ * then fan out along the row in front of them. A pulse travels down the trail so it reads as "this way".
+ */
+const TRAIL: { x: number; z: number; s: number }[] = (() => {
+  const dots: { x: number; z: number; s: number }[] = [];
+  for (let z = -1.5; z >= -8.5; z -= 0.55) dots.push({ x: 0.05, z, s: -1.5 - z });
+  const along = 7;
+  for (let x = -3.6; x <= 2.21; x += 0.55) dots.push({ x, z: -8.75, s: along + Math.abs(x - 0.05) });
+  return dots;
+})();
+
+function ChapterTrail() {
+  const mats = useRef<THREE.MeshBasicMaterial[]>([]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    mats.current.forEach((m, i) => {
+      if (!m) return;
+      const w = Math.max(0, Math.sin(t * 2.6 - TRAIL[i].s * 1.2));
+      m.color.setRGB(0.5, 0.9, 1.5).multiplyScalar(0.8 + 1.2 * w * w);
+      m.opacity = 0.7 + 0.3 * w;
+    });
+  });
+  return (
+    <group>
+      {TRAIL.map((d, i) => (
+        <mesh key={i} position={[d.x, 0.06, d.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.085, 14]} />
+          <meshBasicMaterial ref={(m) => void (m && (mats.current[i] = m))} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      ))}
+      {CHAPTER_AT.map(([x]) => (
+        <mesh key={x} position={[x, 0.065, -9.1]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.5, 0.58, 32]} />
+          <meshBasicMaterial color={new THREE.Color(0.5, 0.9, 1.6)} transparent opacity={0.8} depthWrite={false} toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * A standing sign just inside the door, beside the trail: "Chương mưa" and a glowing chevron that points
+ * straight ahead. It stands beside the trail at about the depth the couple reach a few steps in, so the camera
+ * (held off the front wall, looking down over them) frames the whole board next to them instead of cutting it at
+ * the bottom of the screen or hiding them behind it.
+ */
+function ChapterSign() {
+  const glowCol = useMemo(() => new THREE.Color(0.55, 1.0, 1.7), []);
+  return (
+    <group position={[1.75, 0, -3.6]} rotation={[0, -0.4, 0]}>
+      <mesh position={[0, 0.7, -0.03]} castShadow>
+        <cylinderGeometry args={[0.04, 0.05, 1.4, 8]} />
+        <meshStandardMaterial color="#3b2a1f" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 1.4, 0]} castShadow>
+        <boxGeometry args={[1.5, 0.5, 0.06]} />
+        <meshStandardMaterial color="#4a2f1e" roughness={0.6} emissive="#2a1a10" emissiveIntensity={0.7} />
+      </mesh>
+      <Text position={[-0.18, 1.4, 0.04]} fontSize={0.19} color="#f6e7c4" anchorX="center" anchorY="middle">
+        Chương mưa
+      </Text>
+      {/* an upward chevron: straight ahead, where the trail goes */}
+      <group position={[0.58, 1.4, 0.04]}>
+        {[-1, 1].map((s) => (
+          <mesh key={s} position={[s * 0.065, -0.015, 0]} rotation={[0, 0, s * -0.75]}>
+            <boxGeometry args={[0.2, 0.055, 0.02]} />
+            <meshBasicMaterial color={glowCol} toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
 /** Slow establishing shot for the title screen. */
 function PreviewCamera() {
   const { camera } = useThree();
@@ -623,6 +726,12 @@ function PreviewCamera() {
 }
 
 export default function World({ preview = false }: { preview?: boolean }) {
+  // back from a rain chapter: stand in front of its frame instead of out on the street
+  const last = useGame((s) => s.lastChapter);
+  const spawn = useMemo<[number, number, number]>(() => {
+    const i = CHAPTER_META.findIndex((c) => c.id === last);
+    return i < 0 ? SPAWN : [CHAPTER_AT[i][0], SPAWN[1], CHAPTER_AT[i][1] + 1.6];
+  }, [last]);
   const indoor = useMemo(() => new THREE.Box3(new THREE.Vector3(-ROOM.x - 0.4, 0, ROOM.z - 0.4), new THREE.Vector3(ROOM.x + 0.4, 7, 0.4)), []);
   return (
     <>
@@ -651,8 +760,13 @@ export default function World({ preview = false }: { preview?: boolean }) {
           {SPOTS.map((s) => (
             <MemorySpot key={s.id} s={s} />
           ))}
+          {CHAPTER_META.map((c, i) => (
+            <ChapterFrame key={c.id} i={i} />
+          ))}
+          <ChapterTrail />
+          <ChapterSign />
         </Suspense>
-        {!preview && <Couple spawn={SPAWN} />}
+        {!preview && <Couple spawn={spawn} />}
       </Physics>
       <Rain count={touch ? 900 : 2000} indoorBox={indoor} />
       {preview && <PreviewCamera />}
