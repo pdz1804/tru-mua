@@ -1,9 +1,13 @@
-import { defineConfig, devices } from '@playwright/test';
+﻿import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.E2E_PORT ?? 5191);
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 480_000, // CI renders WebGL in software (SwiftShader)
+  timeout: process.env.CI ? 900_000 : 480_000, // CI renders WebGL in software (SwiftShader)
+  // one worker: parallel SwiftShader pages share the runner's 4 vCPUs and starve each other's frames
+  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   use: {
     baseURL: `http://localhost:${port}`,
     launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] },

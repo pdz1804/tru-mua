@@ -1,17 +1,56 @@
-import { useEffect, useRef, useState } from 'react';
-import { useProgress } from '@react-three/drei';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame, SU_DRESS, PHU_SHIRT, HAIR, type Who } from '../state/store';
 import { MEMORIES, memoryById } from '../content/memories';
-import { CHAPTERS, chapterById, isChoice, type Line } from '../content/chapters';
+import { CHAPTER_META } from '../chapters/catalog';
+import ChapterMenu from '../chapters/ChapterMenu';
 import { onFocus, type Interactable } from '../game/interactions';
-import { press, stick, look } from '../game/input';
+import { press, stick, setInputEnabled, look } from '../game/input';
 import { toastBus } from '../lib/toast';
+
+/** Screen-reader text for a postcard's stamp dots: words, never a count. */
+const stampsLabel = (stamps: { label: string; earned: boolean }[]) => {
+  const got = stamps.filter((s) => s.earned);
+  if (got.length === 0) return 'Chưa có dấu nào';
+  return got.length === stamps.length ? 'Đủ dấu' : 'Đã có dấu';
+};
+
+/** The finished chapters' postcards as a row of cards, one slot per chapter; stamps are dots, never a count. */
+function Album() {
+  const postcards = useGame((s) => s.postcards);
+  return (
+    <div className="album">
+      {CHAPTER_META.map((c) => {
+        const p = postcards.find((x) => x.id === c.id);
+        if (!p)
+          return (
+            <div key={c.id} className="pc empty">
+              <b>{c.date}</b>
+              <span>Chưa có bưu thiếp</span>
+            </div>
+          );
+        return (
+          <div key={c.id} className="pc">
+            {p.img && <img src={p.img} alt={p.title} />}
+            <b>{p.date}</b>
+            <span>{p.title}</span>
+            <span className="dots" role="img" aria-label={stampsLabel(p.stamps)}>
+              {p.stamps.map((s) => (
+                <i key={s.label} className={s.earned ? 'on' : ''} />
+              ))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Title() {
   const setPhase = useGame((s) => s.setPhase);
   const seen = useGame((s) => s.seen.length);
-  const [album, setAlbum] = useState(false);
-  if (album) return <Album onBack={() => setAlbum(false)} />;
+  const postcards = useGame((s) => s.postcards);
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   return (
     <div className="title">
       <span className="eyebrow">Dành riêng cho Su, từ Phú</span>
@@ -25,16 +64,30 @@ export function Title() {
           Bắt đầu
         </button>
         {seen > 0 && (
-          <button className="btn glass" type="button" onClick={() => setAlbum(true)}>
-            Album kỷ niệm
-          </button>
-        )}
-        {seen > 0 && (
           <span className="eyebrow">
             Đã mở {seen}/{MEMORIES.length} kỷ niệm
           </span>
         )}
       </div>
+      <button type="button" className="lv chapter-entry" onClick={() => setMenu(true)} aria-label="Chương mưa: chọn một chương để chơi ngay">
+        <span className="eyebrow">Chương mưa</span>
+        <span className="t">Ba cơn mưa, ba ngày thật. Chơi thẳng từ đây.</span>
+        <span className="chips">
+          {CHAPTER_META.map((c) => (
+            <span key={c.id} className={`chip ${postcards.some((p) => p.id === c.id) ? 'on' : ''}`}>
+              {postcards.some((p) => p.id === c.id) ? '✓ ' : ''}
+              {c.date}
+            </span>
+          ))}
+        </span>
+      </button>
+      {postcards.length > 0 && (
+        <div style={{ display: 'grid', gap: 6 }}>
+          <span className="eyebrow">Album bưu thiếp</span>
+          <Album />
+        </div>
+      )}
+      {menu && <ChapterMenu onClose={closeMenu} />}
       <span className="credit">Phu Nguyen — HCMC, VN</span>
     </div>
   );
@@ -183,12 +236,11 @@ export function Hud({ touch }: { touch: boolean }) {
   const [focus, setFocus] = useState<Interactable | null>(null);
   const [toast, setToast] = useState('');
   const seen = useGame((s) => s.seen.length);
-  const chapters = useGame((s) => s.chaptersDone.length);
-  const sound = useGame((s) => s.sound);
-  const setSound = useGame((s) => s.setSound);
   const lead = useGame((s) => s.lead);
   const twoPlayer = useGame((s) => s.twoPlayer);
   const setPhase = useGame((s) => s.setPhase);
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   useEffect(() => onFocus(setFocus), []);
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
@@ -240,16 +292,12 @@ export function Hud({ touch }: { touch: boolean }) {
           Kỷ niệm{' '}
           <b>
             {seen}/{MEMORIES.length}
-          </b>{' '}
-          · Chương mưa{' '}
-          <b>
-            {chapters}/{CHAPTERS.length}
           </b>
         </span>
         <div className="row">
           {!twoPlayer && <span className="pill glass">Đang đi: {lead === 'phu' ? 'Phú' : 'Su'}</span>}
-          <button type="button" className="btn glass" aria-pressed={sound} onClick={() => setSound(!sound)}>
-            {sound ? 'Tiếng mưa: bật' : 'Tiếng mưa: tắt'}
+          <button type="button" className="btn glass rain" onClick={() => setMenu(true)}>
+            Chương mưa
           </button>
           <button type="button" className="btn glass" onClick={() => setPhase('studio')}>
             Thay đồ
@@ -261,6 +309,7 @@ export function Hud({ touch }: { touch: boolean }) {
           {toast}
         </div>
       )}
+      {menu && <ChapterMenu onClose={closeMenu} />}
       {focus && (
         <button type="button" className="prompt glass" onClick={() => press('interact')}>
           {!touch && <kbd>E</kbd>} {focus.prompt}
@@ -307,47 +356,25 @@ export function Hud({ touch }: { touch: boolean }) {
   );
 }
 
-/**
- * Modal behaviour shared by the memory card and the chapter player: focus moves into the
- * dialog, Tab cycles inside it, Escape closes it, and focus returns to where it was.
- */
-function useDialog(ref: React.RefObject<HTMLElement>, open: boolean, onClose: () => void) {
-  useEffect(() => {
-    if (!open) return;
-    const before = document.activeElement as HTMLElement | null;
-    const items = () => [...(ref.current?.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])') ?? [])];
-    (ref.current?.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0])?.focus();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'Tab') {
-        const list = items();
-        if (!list.length) return;
-        const i = list.indexOf(document.activeElement as HTMLElement);
-        const next = e.shiftKey ? (i <= 0 ? list.length - 1 : i - 1) : i === list.length - 1 ? 0 : i + 1;
-        e.preventDefault();
-        list[next].focus();
-      }
-    };
-    window.addEventListener('keydown', key);
-    return () => {
-      window.removeEventListener('keydown', key);
-      before?.focus?.();
-    };
-  }, [ref, open, onClose]);
-}
-
 export function MemoryCard() {
   const active = useGame((s) => s.active);
   const close = useGame((s) => s.close);
-  const card = useRef<HTMLElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
   const m = active ? memoryById(active) : null;
-  useDialog(card, !!m, close);
+  useEffect(() => {
+    setInputEnabled(!m);
+    if (!m) return;
+    btn.current?.focus();
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [m, close]);
   if (!m) return null;
   return (
     <div className="veil" onClick={(e) => e.target === e.currentTarget && close()}>
-      <article ref={card} className="card" role="dialog" aria-modal="true" aria-labelledby="mem-title">
+      <article className="card" role="dialog" aria-modal="true" aria-labelledby="mem-title">
         {m.date && <div className="date">{m.date}</div>}
         <h3 id="mem-title">{m.title}</h3>
         {m.body.map((p, i) => (
@@ -364,165 +391,11 @@ export function MemoryCard() {
         )}
         <div className="foot">
           <span style={{ fontSize: 12, opacity: 0.7 }}>Phú gửi Su</span>
-          <button data-autofocus type="button" className="btn" onClick={close}>
+          <button ref={btn} type="button" className="btn" onClick={close}>
             Cất lại ♡
           </button>
         </div>
       </article>
-    </div>
-  );
-}
-
-/**
- * A rain chapter told as a visual-novel scene over the café: one line at a time, one choice in
- * the middle, then a postcard. Advance with the button (Enter/Space on it); Escape leaves.
- */
-export function ChapterPlayer() {
-  const id = useGame((s) => s.chapter);
-  const leave = useGame((s) => s.leaveChapter);
-  const finish = useGame((s) => s.finishChapter);
-  const ch = id ? chapterById(id) : null;
-  const box = useRef<HTMLElement>(null);
-  const [step, setStep] = useState(0);
-  const [reply, setReply] = useState<Line[]>([]);
-  const [r, setR] = useState(0);
-  useEffect(() => {
-    setStep(0);
-    setReply([]);
-    setR(0);
-  }, [id]);
-  useDialog(box, !!ch, leave);
-  const done = !!ch && step >= ch.beats.length;
-  useEffect(() => {
-    if (done) finish();
-  }, [done, finish]);
-  // Keep focus on the advance button as lines change so Enter/Space keep working.
-  useEffect(() => {
-    box.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
-  }, [step, r, reply]);
-  if (!ch) return null;
-  const beat = ch.beats[step];
-  const inReply = reply.length > 0;
-  const line: Line | null = inReply ? reply[r] : beat && !isChoice(beat) ? beat : null;
-  const next = () => {
-    if (inReply && r < reply.length - 1) return setR(r + 1);
-    setReply([]);
-    setR(0);
-    setStep(step + 1);
-  };
-  return (
-    <div className="chapter">
-      <header className="chapter-head">
-        <span className="date">{ch.date}</span>
-        <div>
-          <h3 id="ch-title">{ch.title}</h3>
-          <p>{ch.mood}</p>
-        </div>
-      </header>
-      <section ref={box} className="chapter-box glass" role="dialog" aria-modal="true" aria-labelledby="ch-title" aria-live="polite">
-        {done ? (
-          <div className="postcard">
-            <span className="eyebrow">Bưu thiếp · {ch.date}</span>
-            <p>{ch.postcard}</p>
-            <div className="row">
-              <button type="button" className="btn" onClick={() => setStep(0)}>
-                Xem lại
-              </button>
-              <button data-autofocus type="button" className="btn gold" onClick={leave}>
-                Cất vào album ♡
-              </button>
-            </div>
-          </div>
-        ) : line ? (
-          <>
-            {line.who && <b className={`who who-${line.who === 'Su' ? 'su' : 'phu'}`}>{line.who}</b>}
-            <p className={line.who ? '' : 'narration'}>{line.text}</p>
-            <div className="row chapter-foot">
-              <span className="eyebrow">
-                {Math.min(step + 1, ch.beats.length)}/{ch.beats.length}
-              </span>
-              <button data-autofocus type="button" className="btn gold" onClick={next}>
-                Tiếp ▸
-              </button>
-            </div>
-          </>
-        ) : beat && isChoice(beat) ? (
-          <>
-            <p className="narration">{beat.prompt}</p>
-            <div className="choices">
-              {beat.options.map((o, i) => (
-                <button key={o.label} data-autofocus={i === 0 ? true : undefined} type="button" className="btn" onClick={() => setReply(o.reply)}>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-        <button type="button" className="chapter-x" aria-label="Rời chương" onClick={leave}>
-          ✕
-        </button>
-      </section>
-    </div>
-  );
-}
-
-/** Shown over the canvas while the lazily loaded 3D world and its assets stream in. */
-export function Loader() {
-  const { active, progress } = useProgress();
-  const [show, setShow] = useState(false);
-  // Avoid a flash for cached loads; only show when loading takes a moment.
-  useEffect(() => {
-    if (!active) return setShow(false);
-    const t = setTimeout(() => setShow(true), 250);
-    return () => clearTimeout(t);
-  }, [active]);
-  if (!show) return null;
-  return (
-    <div className="loading glass" role="status">
-      Đang mở cửa… {Math.round(progress)}%
-    </div>
-  );
-}
-
-/** Everything already opened, readable again from the title screen without entering the café. */
-function Album({ onBack }: { onBack: () => void }) {
-  const seen = useGame((s) => s.seen);
-  const done = useGame((s) => s.chaptersDone);
-  const open = useGame((s) => s.open);
-  const postcards = CHAPTERS.filter((c) => done.includes(c.id));
-  const memories = seen.map(memoryById).filter((m): m is NonNullable<typeof m> => !!m);
-  return (
-    <div className="album">
-      <header className="row album-head">
-        <div>
-          <span className="eyebrow">Những gì hai đứa đã mở</span>
-          <h2>Album kỷ niệm</h2>
-        </div>
-        <button type="button" className="btn glass" onClick={onBack} autoFocus>
-          ◂ Quay lại
-        </button>
-      </header>
-      {postcards.length > 0 && (
-        <section className="album-grid">
-          {postcards.map((c) => (
-            <article key={c.id} className="postcard">
-              <span className="eyebrow">Bưu thiếp · {c.date}</span>
-              <b>{c.title}</b>
-              <p>{c.postcard}</p>
-            </article>
-          ))}
-        </section>
-      )}
-      <section className="album-grid">
-        {memories.map((m) => (
-          <button key={m.id} type="button" className="album-item" onClick={() => open(m.id)}>
-            {m.date && <span className="date">{m.date}</span>}
-            <b>{m.title}</b>
-            <span>{m.hint}</span>
-          </button>
-        ))}
-      </section>
-      <span className="credit">Phu Nguyen — HCMC, VN</span>
     </div>
   );
 }

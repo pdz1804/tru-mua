@@ -62,9 +62,9 @@ export const MEMORIES: Memory[] = [
     kind: 'jar',
     date: '23/06',
     title: 'Bánh bơ và chiếc xe vỏ sò',
-    hint: 'Món quà đầu tiên em tặng anh',
+    hint: 'Món quà nhỏ em tặng anh',
     body: [
-      'Em tặng anh bánh bơ và một chiếc xe nhỏ làm từ vỏ sò. Anh giữ nó trên bàn làm việc, mỗi lần mệt chỉ cần nhìn là thấy biển, thấy nắng, thấy em.',
+      'Em tặng anh bánh bơ và một chiếc xe vỏ sò nhỏ xíu. Quà bé xíu thôi, mà cầm trên tay anh thấy cả một mùa hè.',
       'Anh gửi lại em bánh Givral, quà Vũng Tàu, cùng một bó hoa hồng. Hai đứa trao qua trao lại mấy món quà nhỏ xíu, mà vui như đang trao nhau cả một mùa hè.',
     ],
     chips: ['19/06 chính thức tìm hiểu', 'Bánh Givral', 'Hoa hồng'],
@@ -85,11 +85,11 @@ export const MEMORIES: Memory[] = [
     id: 'yellow-umbrella',
     kind: 'umbrella',
     date: '07/07',
-    title: 'Cây dù hôm 07/07',
+    title: 'Cơn mưa hôm 07/07',
     hint: 'Ngày bé Su bắt đầu thương anh Phú',
     body: [
-      'Trời đổ mưa, hai đứa ăn bánh tráng với gà rán, rồi anh che dù đưa em về. Một cây dù nhỏ, hai người, vai anh ướt một bên mà anh chẳng thấy lạnh.',
-      'Sau này em kể, đó là ngày em bắt đầu thương anh. Anh cất cây dù ở đây, để mỗi lần trời mưa là nhớ: có những cơn mưa sinh ra chỉ để người ta đứng gần nhau hơn.',
+      'Trời đổ mưa, hai đứa ăn bánh tráng với gà rán, rồi anh che mưa đưa em về. Anh chẳng nhớ mình ướt bao nhiêu, chỉ nhớ em đi ngay bên cạnh.',
+      'Với anh, đó là ngày bé Su bắt đầu thương anh Phú. Anh cất chiếc dù ở đây, để mỗi lần trời mưa là nhớ: có những cơn mưa sinh ra chỉ để người ta đứng gần nhau hơn.',
     ],
     chips: ['Bánh tráng', 'Gà rán', 'Che mưa đưa em về'],
   },
@@ -99,10 +99,8 @@ export const MEMORIES: Memory[] = [
     date: '18/07',
     title: 'Gấu Stitch',
     hint: 'Món quà nhỏ cho cô gái nhỏ',
-    body: [
-      'Chút quà nhỏ và một bạn Stitch xanh lè, tai to, mặt nghịch. Anh chọn mãi mới được bạn này, vì nghĩ bạn ấy sẽ canh giấc ngủ cho em những tối anh không ở cạnh.',
-    ],
-    chips: ['Stitch', 'Màu xanh em thích'],
+    body: ['Chút quà nhỏ và một bạn Stitch tai to, mặt nghịch. Anh mong bạn ấy ở cạnh em những lúc anh chưa kịp tới.'],
+    chips: ['Stitch'],
   },
   {
     id: 'dalat-keychain',
@@ -112,7 +110,7 @@ export const MEMORIES: Memory[] = [
     hint: 'Em đi Đà Lạt mà vẫn nhớ mang quà về cho anh',
     body: [
       'Em đi Đà Lạt với bạn mấy hôm, về tặng anh móc khoá và cái phin cà phê. Em không uống được cà phê, vậy mà vẫn chọn phin cho anh. Anh đã biết thương là gì từ cái phin nhỏ ấy.',
-      'Rồi lần đầu hai đứa vào photobooth, dạo phố, ăn cơm tấm Lý Thường Kiệt, uống sinh tố 606. Một ngày bình thường, nhưng anh nhớ từng góc.',
+      'Hôm đó hai đứa ghé Highlands, rồi lần đầu vào photobooth, dạo phố, ăn cơm tấm, uống sinh tố 606. Một ngày bình thường, mà anh nhớ từng góc.',
     ],
     chips: ['Photobooth lần đầu', 'Cơm tấm', 'Sinh tố 606'],
   },
@@ -123,8 +121,8 @@ export const MEMORIES: Memory[] = [
     title: 'Bông hoa khổng lồ ở Sala',
     hint: 'Ngày anh được làm bạn trai đồng hành với em',
     body: [
-      'Thiso Mall Sala, con gấu săn sale mãi mới được, phim Conan, gà rán KFC với kem. Rồi anh dắt em đi dạo bờ hồ, câu giờ chờ hoa Dalat Hasfarm tới, tim đập như đang chạy marathon.',
-      'Bên bông hoa khổng lồ, với bó hoa đẹp và em xinh nhất trên đời, anh hỏi em có cho anh làm bạn trai đồng hành với em không. Em gật đầu.',
+      'Thiso Mall Sala, con gấu săn sale mãi mới được, phim Conan, gà rán KFC với kem. Rồi anh dắt em đi dạo bờ hồ, câu giờ chờ hoa Dalat Hasfarm tới, tim đập như đang chạy marathon. Trong lúc chờ, hai đứa chụp hình bên bông hoa khổng lồ và dọc bờ sông.',
+      'Hoa tới rồi. Giữa bó hoa đẹp và em xinh nhất trên đời, anh nói thật lòng mình, và em đồng ý cho anh làm bạn trai đồng hành với em.',
       'Rồi trời mưa. Hai đứa trú ở Trung Nguyên, và em là người dang hai tay ôm anh trước. Cái ôm đầu tiên, mở ra cả một chuỗi ngày gặp là ôm. Hôm đó em mặc đúng chiếc đầm xanh của ngày đầu gặp nhau.',
     ],
     chips: ['Đầm xanh', 'Conan', 'Trung Nguyên', 'Cái ôm đầu tiên'],
@@ -137,7 +135,7 @@ export const MEMORIES: Memory[] = [
     hint: 'Bài tập về nhà em giao: nhớ mang theo hình',
     body: [
       'Ngày quốc tế bạn trai, anh quên, em nhớ. Em tặng anh cuốn album để đựng hết những tấm photobooth của hai đứa, kèm một lá thư tay thật dài.',
-      'Lật từng trang: 19/07 lần đầu ngượng ngùng. 02/08 lần đầu em quàng tay anh, pose em nháy mắt, pose em cắn anh. 16/08 tấm cả hai cùng thích nhất. 05/09 sáu khung lần đầu. 19/09 ba lần trong một ngày, có cả bể cá. 04/10 photoism, lần đầu hun gần dính.',
+      'Lật từng trang: 19/07 lần đầu tiên. 02/08 lần đầu em quàng tay anh, pose em nháy mắt, pose em cắn anh. 16/08 tấm cả hai cùng thích nhất. 05/09 sáu khung lần đầu. 19/09 ba lần trong một ngày, có cả bể cá. Mấy trang sau còn trống, để dành cho những lần sau.',
       'Hoá ra photobooth không chụp khuôn mặt. Nó chụp lại cái cách hai đứa nhìn nhau.',
     ],
     chips: ['Thư tay siêu dài', 'Gấu nâu mặc đồ ngủ', 'Tấm 16/08'],
@@ -176,7 +174,7 @@ export const MEMORIES: Memory[] = [
       '7 giờ tối anh về tới nhà, 7 giờ 15 ra tiệm hoa, vừa chọn hoa vừa nhắn em, lòng vừa háo hức vừa lo. 7 giờ 30, lúc bó hoa đang được gói, em báo tin: em đậu rồi.',
       '8 giờ 15, anh đứng trước mặt em với bó hoa ly xinh nhất từ trước tới giờ, kèm một lá thư tay. Cô giáo tiểu học tương lai của anh, anh tự hào về em lắm.',
     ],
-    chips: ['HCMUE', 'Sư phạm Tiểu học', 'Ly kép trắng tâm vàng'],
+    chips: ['HCMUE', 'Sư phạm Tiểu học', 'Bó hoa ly'],
   },
   {
     id: 'lamour-camera',
@@ -235,7 +233,7 @@ export const MEMORIES: Memory[] = [
     hint: 'Áo mưa đỏ, áo mưa xanh',
     body: [
       'Mưa to gió lớn, hai đứa mặc áo mưa một đỏ một xanh, áo hơi dài với em. Dưới mưa nhỏ, em lại chủ động dang tay, hai đứa ôm nhau mấy chục giây, rồi anh xin hun má, hun trán em. Lãng mạn tới mức anh còn tưởng mình đang đóng phim.',
-      'Trên đường, anh bảo em quay mặt sang phải để tránh nước xe lớn bên trái. Tới Nowzone ăn Dookki, em thích gà sốt chua, mì tương đen, chả cá tokbokki.',
+      'Trên đường, anh bảo em quay mặt sang phải để tránh nước xe lớn bên trái. Tới Nowzone ăn Dookki, em thích gà sốt chua, mì tương đen, tokbokki.',
       'Rồi hai đứa mua mười hai ổ bánh mì đi phát. Tới cây xăng còn đúng một ổ cho hai cô, em nảy ý mua thêm năm ổ, còn đòi trả chung cho vui. Hôm đó anh thương em thêm một lần nữa, vì trái tim em.',
     ],
     chips: ['Áo mưa đỏ và xanh', 'Dookki', 'Nowzone', 'Bánh mì cho mọi người'],
@@ -248,7 +246,7 @@ export const MEMORIES: Memory[] = [
     hint: 'A queen in a long jacket',
     body: [
       'Anh mua cho em và em bé hai chiếc lồng đèn nho nhỏ. Hai đứa đi ăn tokbokki khổng lồ to như bảy viên ngọc rồng, rồi cơm tấm, ngồi kể lại lần đầu đi ăn, lần đầu đi chơi.',
-      'Hai đứa đi tìm phấn, khăn, hộp cho ngày đầu em đi học. Trên đường về em kêu lạnh, anh khoác áo cho em. Em mặc vào, áo dài quá gối, xinh như một nữ hoàng nhỏ.',
+      'Sáng đó em còn tặng anh cặp Bubu Dudu. Hai đứa đi tìm phấn, khăn, hộp cho ngày đầu em đi học. Trên đường về em kêu lạnh, anh khoác áo cho em. Em mặc vào, xinh như một nữ hoàng nhỏ trong chiếc áo khoác rộng thùng thình.',
     ],
     chips: ['Tokbokki khổng lồ', 'Phấn và khăn', 'Áo khoác của anh'],
   },
@@ -259,8 +257,8 @@ export const MEMORIES: Memory[] = [
     title: 'Bubu và Dudu',
     hint: 'Dudu nấu ăn bị té gãy muỗng',
     body: [
-      'Em tặng anh cặp Bubu Dudu. Hôm chụp hình, Dudu nấu ăn bị té gãy cái muỗng, hai đứa phải đi mua lại muỗng cho bạn ấy.',
-      'Từ đó trong mọi tấm hình đồ ăn của hai đứa đều có hai bạn nhỏ này ngồi cạnh, y như hai đứa mình.',
+      'Cặp Bubu Dudu em tặng anh từ hôm 20/09. Đến 26/09, hai đứa chụp hình cùng nhau, Dudu nấu ăn bị té gãy cái muỗng, hai đứa mua lại.',
+      'Rồi hai đứa chụp cả hình effects xịn trên Instagram, y như hai đứa mình.',
     ],
     chips: ['Bubu Dudu', 'Effects xịn trên Instagram'],
   },
@@ -269,11 +267,11 @@ export const MEMORIES: Memory[] = [
     kind: 'fishtank',
     date: '27/09',
     title: 'Bể cá bảy màu và bó cẩm tú cầu',
-    hint: 'Bó hoa đầu tiên trong đời anh',
+    hint: 'Bó hoa đầu tiên trong đời anh là từ em',
     body: [
       'Hai đứa đi tiệm cá, mua cá bảy màu, cá moli, cả ốc. Em ngồi ngắm cá, đáng yêu tới mức anh quên luôn mình đang ngắm cá.',
-      'Bịch hoa anh tặng em bị ướt, rớt mất trên đường. Anh xin lỗi rối rít. Vậy mà em kéo anh qua tiệm hoa, mua tặng anh một bó cẩm tú cầu xanh dương. Bó hoa đầu tiên trong đời anh được nhận, lại là từ em.',
-      'Về nhà dưới mưa râm râm, lành lạnh, em ôm anh từ phía sau. Anh đưa áo khoác cho em đỡ lạnh. Hết mưa thì tới nhà.',
+      'Trên đường, em thấy bó hoa tốt nghiệp xanh xinh và mua tặng anh, bó hoa đầu tiên trong đời anh được nhận. Tới tiệm cá thì hoa ướt, rớt mất. Anh xin lỗi rối rít, vậy mà em kéo anh qua tiệm hoa, mua lại tặng anh một bó cẩm tú cầu xanh dương.',
+      'Về nhà dưới mưa râm râm, lành lạnh, em ôm anh, anh đưa áo khoác cho em đỡ lạnh. Hết mưa thì tới nhà.',
     ],
     chips: ['Cá bảy màu', 'Moli', 'Cẩm tú cầu xanh', 'Gongcha khoai môn'],
   },
@@ -322,7 +320,7 @@ export const MEMORIES: Memory[] = [
     hint: 'Ước mơ làm florist của em',
     body: [
       'Em mơ làm florist. Nên căn phòng này có một chiếc bàn cắm hoa chờ sẵn: ly kép trắng tâm vàng, hồng hồng và hồng trắng, tulip, cẩm chướng tươi hai tuần, hồng Ohara thơm mà chỉ tươi ba ngày.',
-      'Còn dạ lan hương và linh lan, hai loài hoa cưới em thích, anh để dành ở góc riêng. Chưa vội đâu. Em muốn đi du lịch cho thật đã trước, và anh muốn đi cùng em.',
+      'Còn dạ lan hương và linh lan, hai loài hoa thơm dịu em thích, anh để dành ở một góc riêng của bàn, như để dành một điều dịu dàng.',
       'Hồi nhỏ đi công trường với ba, em đã để ý những nhúm hoa mười giờ. Hoá ra yêu hoa là chuyện của em từ rất lâu rồi.',
     ],
     chips: ['Ly', 'Hồng', 'Tulip', 'Hoa mười giờ'],
@@ -334,10 +332,10 @@ export const MEMORIES: Memory[] = [
     title: 'Bảng phấn của cô giáo nhỏ',
     hint: 'Cô giáo tiểu học tương lai',
     body: [
-      'Văn và Anh đưa em vào Lê Hồng Phong, rồi Sư phạm Tiểu học ở HCMUE. Em thương trẻ con, thương học trò, thương cả ngôi trường mầm non Họa Mi 2 của tuổi thơ.',
+      'Văn và Anh đưa em vào LHP, rồi Sư phạm Tiểu học ở HCMUE. Em thương trẻ con, thương học trò, thương cả những lớp học nhỏ xíu.',
       'Chữ mẹ em đẹp nhất nhà, và anh đoán chữ em trên bảng phấn rồi cũng sẽ đẹp như vậy. Một ngày nào đó sẽ có một lớp học nhỏ gọi em là cô Su.',
     ],
-    chips: ['LHP', 'HCMUE', 'Họa Mi 2'],
+    chips: ['LHP', 'HCMUE'],
   },
   {
     id: 'favourite-menu',
@@ -372,7 +370,7 @@ export const MEMORIES: Memory[] = [
     hint: 'Kí ức tuổi nhỏ',
     body: [
       'Em là bé đầu tiên trong nhà, được cả nhà cưng tới mức gọi các dì các chú là mẹ, là ba. Hồi nhỏ em sợ múa mặt nạ, và mấy dì phải chở em đi vòng vòng thì em mới chịu ngủ.',
-      'Có tấm hình em bé bị chét kem đầy mặt, mắt khóc tèm lem. Anh treo nó ở đây, vì cô bé ấy đã lớn lên thành người con gái anh thương nhất.',
+      'Có tấm hình em bé bị chét kem lem luốc cả mặt, nhìn là muốn cười. Anh treo nó ở đây, vì cô bé ấy đã lớn lên thành người con gái anh thương nhất.',
     ],
     chips: ['Bé đầu tiên trong nhà', 'Sợ múa mặt nạ'],
   },

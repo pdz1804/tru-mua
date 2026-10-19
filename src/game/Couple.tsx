@@ -6,7 +6,6 @@ import { Chibi, type ChibiHandle } from '../world/Chibi';
 import { useGame } from '../state/store';
 import { axis, consume, look, resetPresses, stick } from './input';
 import { updateFocus, focused } from './interactions';
-import { setIndoor } from './audio';
 import { angleDelta, cameraRelative, clamp, damp } from '../lib/math';
 import { toastBus } from '../lib/toast';
 
@@ -39,7 +38,7 @@ function useWalker(): Walker {
  * behind, or walks hand in hand. Also owns the third-person camera (orbit + wall push-in).
  */
 export function Couple({ spawn }: { spawn: [number, number, number] }) {
-  const { su, phu, lead, twoPlayer, toggleLead, active } = useGame();
+  const { su, phu, lead, twoPlayer, toggleLead, active, doorOpen } = useGame();
   const { world, rapier } = useRapier();
   const { camera } = useThree();
   const P = useWalker();
@@ -100,7 +99,6 @@ export function Couple({ spawn }: { spawn: [number, number, number] }) {
         }),
     };
   }, [P, S, spawn, camera]);
-  const indoor = useRef(false);
   useFrame((_, rawDt) => {
     // 0.1 s cap: slow devices still move at real speed; the controller resolves collisions per step
     const dt = Math.min(rawDt, 0.1);
@@ -168,8 +166,6 @@ export function Couple({ spawn }: { spawn: [number, number, number] }) {
     const lt = L.body.current?.translation();
     const ot = F.body.current?.translation();
     if (lt) {
-      const inside = lt.z < -0.3;
-      if (inside !== indoor.current) setIndoor((indoor.current = inside));
       const f = updateFocus(lt.x, lt.z);
       if (!f && twoPlayer && ot) updateFocus(ot.x, ot.z);
       if (consume('interact') && !active) focused()?.onUse();
@@ -200,11 +196,14 @@ export function Couple({ spawn }: { spawn: [number, number, number] }) {
       );
       if (hit) dist = Math.max(0.9, hit.timeOfImpact - 0.25);
       const want = c.target.clone().addScaledVector(dir, dist);
-      // keep the camera in the same space as the couple: inside the room box, or out on the street
+      // keep the camera in the same space as the couple: inside the room box, or out on the street. Right behind
+      // the open door nothing is in the way, so the camera may sit out on the street instead of being squeezed
+      // against the front wall and staring straight down at the couple's heads.
       if (inside) {
+        const throughDoor = doorOpen && !hit;
         want.x = clamp(want.x, -6.5, 6.5);
         want.y = clamp(want.y, 0.6, 3.9);
-        want.z = clamp(want.z, -11.5, -0.7);
+        want.z = throughDoor ? Math.max(want.z, -11.5) : clamp(want.z, -11.5, -0.7);
       } else want.z = Math.max(want.z, 0.5);
       c.pos.lerp(want, damp(hit ? 14 : 5, dt));
       camera.position.copy(c.pos);
