@@ -12,6 +12,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TUNING, afterSneeze, scooterHit, shouldWarn, speedFactor, wetStep, type Stamp } from '../tuning';
 import { clampMarker } from './marker-clamp';
+import { FIT, swapDesigner } from './designer';
 import { OUTLINE, SHARED, clamp, damp, heartTex, lerp, makeChar, makeScooter, makeUmbrella, type Look, type Rig, type Vehicle } from './kit';
 
 export type Mode = 'walk' | 'ride';
@@ -367,6 +368,11 @@ export class Engine {
     this.cam.updateProjectionMatrix();
   }
 
+  /** True while `world` is still the live world of a running engine: a late model load checks this before it adds anything. */
+  isCurrent(world: THREE.Object3D) {
+    return !this.disposed && this.world === world;
+  }
+
   private disposeWorld() {
     this.scene.remove(this.world);
     this.world.traverse((o) => {
@@ -718,6 +724,7 @@ export class Engine {
     W.stats = { pass: 0, hold: 0, sneeze: 0, cold: false, saidHold: false };
     W.umbrella = makeUmbrella();
     this.world.add(W.umbrella);
+    void swapDesigner(this, W.umbrella, 'tm-umbrella-open', FIT.umbrella);
     W.umbOpen = true;
   }
   other = (c: Walker) => (c === this.W.P ? this.W.S : this.W.P);
@@ -1048,6 +1055,7 @@ export class Engine {
       const b = makeScooter(cols[k % cols.length], coats[(k + 1) % coats.length]);
       b.visible = false;
       this.world.add(b);
+      void swapDesigner(this, b, 'tm-scooter', FIT.scooter);
       this.traffic.push({ g: b, x: 0, z: 0, v: 0, on: false, cd: 2.5 + k * 4, warned: false });
     }
   }

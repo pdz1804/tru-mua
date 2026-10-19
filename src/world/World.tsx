@@ -12,7 +12,8 @@ import { CHAPTER_META } from '../chapters/catalog';
 import { toastBus } from '../lib/toast';
 import { A, Prop } from './Prop';
 import { Rain } from './Rain';
-import { Bouquet, Camera35, Chalkboard, FishTank, Frame, Lanterns, Necklace } from './Details';
+import { Bouquet, Camera35, Chalkboard, FishTank, Frame, GuppySchool, Lanterns, Necklace } from './Details';
+import { Designer, DesignerEnabled } from './Designer';
 
 /*
  * Layout (metres). The café front wall faces +z at z = 0, door centred at x = 0.
@@ -211,7 +212,14 @@ function Street() {
           <Sparkles position={[x, 4, 2.6]} count={8} scale={0.6} size={3} color="#ffd29a" speed={0.2} />
         </group>
       ))}
-      <Prop src="street-kenney/detail-bench.glb" height={0.9} position={[-5.6, 0.12, 2.6]} rotation={Math.PI} collide />
+      <Designer
+        file="scene-hall-bench"
+        scale={1.5}
+        position={[-5.6, 0.12, 2.6]}
+        rotation={Math.PI}
+        collide
+        fallback={<Prop src="street-kenney/detail-bench.glb" height={0.9} position={[-5.6, 0.12, 2.6]} rotation={Math.PI} collide />}
+      />
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.3} position={[-1.6, 0.12, 0.7]} collide />
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.3} position={[1.6, 0.12, 0.7]} collide />
       <Prop src="furniture-kenney/rugDoormat.glb" width={1.4} position={[0, 0.13, 0.9]} />
@@ -219,6 +227,29 @@ function Street() {
       <CuboidCollider args={[15, 3, 0.2]} position={[0, 1.5, 13.5]} />
       <CuboidCollider args={[0.2, 3, 7]} position={[-ROOM.x - 2.4, 1.5, 7]} />
       <CuboidCollider args={[0.2, 3, 7]} position={[ROOM.x + 2.4, 1.5, 7]} />
+    </group>
+  );
+}
+
+/** The door set is 1.1 m wide and 2.21 m tall; stretch it to the opening (depth follows the height). */
+const DOOR_SCALE: [number, number, number] = [DOOR.w / 1.1, DOOR.h / 2.21, DOOR.h / 2.21];
+
+/** The code-built door leaf: the stand-in while the designer's door loads, and the fallback if it never does. */
+function CodeDoorLeaf() {
+  return (
+    <group position={[DOOR.w / 2, DOOR.h / 2, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[DOOR.w - 0.04, DOOR.h - 0.04, 0.07]} />
+        <meshStandardMaterial color="#5b3a26" roughness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.35, 0.04]}>
+        <planeGeometry args={[DOOR.w * 0.6, DOOR.h * 0.45]} />
+        <meshBasicMaterial toneMapped={false} color={new THREE.Color(1.4, 1.05, 0.65)} />
+      </mesh>
+      <mesh position={[DOOR.w / 2 - 0.15, -0.05, 0.06]}>
+        <sphereGeometry args={[0.04, 12, 10]} />
+        <meshStandardMaterial color="#d8b85a" metalness={0.9} roughness={0.2} />
+      </mesh>
     </group>
   );
 }
@@ -250,21 +281,23 @@ function Door() {
   });
   return (
     <>
-      <group ref={pivot} position={[-DOOR.w / 2, 0, -0.12]}>
-        <group position={[DOOR.w / 2, DOOR.h / 2, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[DOOR.w - 0.04, DOOR.h - 0.04, 0.07]} />
-            <meshStandardMaterial color="#5b3a26" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 0.35, 0.04]}>
-            <planeGeometry args={[DOOR.w * 0.6, DOOR.h * 0.45]} />
-            <meshBasicMaterial toneMapped={false} color={new THREE.Color(1.4, 1.05, 0.65)} />
-          </mesh>
-          <mesh position={[DOOR.w / 2 - 0.15, -0.05, 0.06]}>
-            <sphereGeometry args={[0.04, 12, 10]} />
-            <meshStandardMaterial color="#d8b85a" metalness={0.9} roughness={0.2} />
-          </mesh>
-        </group>
+      {/*
+        The designer's door set is stretched to fill the 1.5 m opening. Its frame stays put and only the leaf swings, on its
+        hinge edge (0.1 m in from the set's origin). The code-built leaf stands in until it loads and is the fallback.
+      */}
+      <Designer file="scene-door-set" part="frame" scale={DOOR_SCALE} position={[-DOOR.w / 2, 0, -0.12]} />
+      <group ref={pivot} position={[-DOOR.w / 2 + 0.1 * DOOR_SCALE[0], 0, -0.12]}>
+        <Designer
+          file="scene-door-set"
+          part="leaf"
+          scale={DOOR_SCALE}
+          position={[-0.1 * DOOR_SCALE[0], 0, 0]}
+          fallback={
+            <group position={[-0.1 * DOOR_SCALE[0], 0, 0]}>
+              <CodeDoorLeaf />
+            </group>
+          }
+        />
       </group>
       {!open && <CuboidCollider args={[DOOR.w / 2, DOOR.h / 2, 0.1]} position={[0, DOOR.h / 2, -0.12]} />}
     </>
@@ -305,14 +338,24 @@ function Interior() {
             <cylinderGeometry args={[0.006, 0.006, 1.1, 4]} />
             <meshBasicMaterial color="#111" />
           </mesh>
-          <mesh>
-            <coneGeometry args={[0.28, 0.24, 24, 1, true]} />
-            <meshStandardMaterial color="#2f6f62" side={THREE.DoubleSide} roughness={0.5} />
-          </mesh>
-          <mesh position={[0, -0.08, 0]}>
-            <sphereGeometry args={[0.08, 12, 10]} />
-            <meshBasicMaterial toneMapped={false} color={new THREE.Color(3, 2.2, 1.3)} />
-          </mesh>
+          {/* the paper lantern hangs from the cord's end; its shell has the designer's own glow material */}
+          <Designer
+            file="scene-paper-lantern"
+            scale={0.7}
+            shadows={false}
+            fallback={
+              <>
+                <mesh>
+                  <coneGeometry args={[0.28, 0.24, 24, 1, true]} />
+                  <meshStandardMaterial color="#2f6f62" side={THREE.DoubleSide} roughness={0.5} />
+                </mesh>
+                <mesh position={[0, -0.08, 0]}>
+                  <sphereGeometry args={[0.08, 12, 10]} />
+                  <meshBasicMaterial toneMapped={false} color={new THREE.Color(3, 2.2, 1.3)} />
+                </mesh>
+              </>
+            }
+          />
           <pointLight
             position={[0, -0.2, 0]}
             color="#ffc98a"
@@ -328,6 +371,20 @@ function Interior() {
       <Prop src="furniture-kaykit/rug_rectangle_stripes_A.gltf" width={3.2} position={[-4.8, 0.03, -5.1]} rotation={Math.PI / 2} shadows={false} />
       <Prop src="furniture-kaykit/rug_oval_A.gltf" width={2.6} position={[0.6, 0.03, -6.6]} shadows={false} />
       <Prop src="furniture-kenney/coatRack.glb" height={1.8} position={[-2.3, 0.02, -0.7]} collide />
+      {/* just inside the door: umbrella stand on the right, a lantern-glow sconce on each side wall */}
+      <Designer file="scene-umbrella-stand" scale={1.3} position={[1.45, 0.02, -0.5]} collide />
+      {(
+        [
+          [-ROOM.x, -3.6, Math.PI / 2],
+          [-ROOM.x, -6.5, Math.PI / 2],
+          [-ROOM.x, -9.2, Math.PI / 2],
+          [ROOM.x, -3.3, -Math.PI / 2],
+          [ROOM.x, -6.8, -Math.PI / 2],
+          [ROOM.x, -10.3, -Math.PI / 2],
+        ] as const
+      ).map(([x, z, r]) => (
+        <Designer key={`${x}${z}`} file="scene-wall-sconce" scale={1.4} shadows={false} position={[x, 2.3, z]} rotation={r} />
+      ))}
       <Prop src="furniture-kaykit/lamp_standing.gltf" height={1.8} position={[-6.4, 0.02, -2.9]} collide />
       <Prop src="furniture-kaykit/lamp_standing.gltf" height={1.8} position={[6.4, 0.02, -10.6]} collide />
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.4} position={[-6.4, 0.02, -11.3]} collide />
@@ -351,9 +408,18 @@ const SPOTS: Spot[] = [
     id: 'yellow-umbrella',
     at: [-2.3, -0.7],
     node: (
-      <group position={[0.25, 0, 0.2]} rotation={[0, 0, 0.12]}>
-        <Prop src="street-misc/umbrella-closed.glb" height={1} tint="#f6e27a" />
-      </group>
+      // the yellow umbrella of that day, left open to dry beside the coat rack
+      <Designer
+        file="tm-umbrella-open"
+        scale={0.95}
+        position={[0.3, 0, 0.25]}
+        rotation={0.6}
+        fallback={
+          <group position={[0.25, 0, 0.2]} rotation={[0, 0, 0.12]}>
+            <Prop src="street-misc/umbrella-closed.glb" height={1} tint="#f6e27a" />
+          </group>
+        }
+      />
     ),
   },
   {
@@ -363,20 +429,67 @@ const SPOTS: Spot[] = [
       <>
         <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
         <Prop src="restaurant-kaykit/jar_A_medium.gltf" height={0.26} position={[0, 0.72, 0]} />
-        <Bouquet position={[0, 0.9, 0]} colors={['#a9c8ff', '#ffffff', '#ffb6cf', '#ffffff', '#ff8fb0', '#fff2a8']} />
+        {/* the wrapped bouquet stands in the jar, stem tip at the jar's mouth */}
+        <Designer
+          file="tm-bouquet-wrapped"
+          scale={1.15}
+          position={[0, 0.84, 0]}
+          fallback={<Bouquet position={[0, 0.9, 0]} colors={['#a9c8ff', '#ffffff', '#ffb6cf', '#ffffff', '#ff8fb0', '#fff2a8']} />}
+        />
+        {/* the Hello Kitty in a pink dress that came with the flowers */}
+        <Designer file="keepsake-hello-kitty" scale={1.5} position={[0.3, 0.72, 0.08]} rotation={-0.4} />
       </>
     ),
   },
-  { id: 'cactus', at: [-4.4, -0.55], node: <Prop src="furniture-kaykit/cactus_small_A.gltf" height={0.34} position={[0, WIN.y0, 0.1]} /> },
-  { id: 'mirror-heart', at: [4.4, -0.55], node: <Prop src="street-misc/present.glb" height={0.26} tint="#5fa8e8" position={[0, WIN.y0, 0.1]} /> },
+  {
+    id: 'cactus',
+    at: [-4.4, -0.55],
+    node: (
+      <>
+        <Designer
+          file="keepsake-cactus"
+          scale={2.4}
+          position={[0, WIN.y0, 0.1]}
+          fallback={<Prop src="furniture-kaykit/cactus_small_A.gltf" height={0.34} position={[0, WIN.y0, 0.1]} />}
+        />
+        {/* the wool bought that day */}
+        <Designer file="keepsake-yarn-basket" scale={1.3} position={[0.45, WIN.y0, 0.1]} />
+      </>
+    ),
+  },
+  {
+    id: 'mirror-heart',
+    at: [4.4, -0.55],
+    node: (
+      <>
+        <Designer
+          file="keepsake-heart-mirror-box"
+          scale={3}
+          position={[-0.15, WIN.y0, 0.1]}
+          fallback={<Prop src="street-misc/present.glb" height={0.26} tint="#5fa8e8" position={[-0.15, WIN.y0, 0.1]} />}
+        />
+        {/* the blue box with a ribbon it came in */}
+        <Designer file="keepsake-blue-gift-box" scale={1} position={[0.3, WIN.y0, 0.1]} />
+      </>
+    ),
+  },
   {
     id: 'dalat-keychain',
     at: [-3.2, -2.3],
     node: (
       <>
         <Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />
-        <Prop src="food-kenney/mug.glb" height={0.12} position={[0.1, 0.75, 0]} />
-        <Prop src="food-kenney/croissant.glb" width={0.18} position={[-0.15, 0.75, 0.05]} />
+        <Designer
+          file="keepsake-phin-keychain"
+          scale={2.4}
+          position={[0, 0.75, 0]}
+          fallback={
+            <>
+              <Prop src="food-kenney/mug.glb" height={0.12} position={[0.1, 0.75, 0]} />
+              <Prop src="food-kenney/croissant.glb" width={0.18} position={[-0.15, 0.75, 0.05]} />
+            </>
+          }
+        />
         <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, -0.75]} collide />
       </>
     ),
@@ -387,7 +500,7 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />
-        <Necklace position={[0, 0.95, 0]} />
+        <Designer file="tm-firefly-necklace" scale={2.4} position={[0, 0.75, 0]} fallback={<Necklace position={[0, 0.95, 0]} />} />
         <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, -0.75]} collide />
       </>
     ),
@@ -398,19 +511,49 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kenney/kitchenBar.glb" height={1.05} rotation={-Math.PI / 2} collide />
-        <Prop src="restaurant-kaykit/menu.gltf" height={0.3} position={[0, 1.05, 0]} rotation={-Math.PI / 2} />
-        <Prop src="food-kenney/cup-tea.glb" height={0.1} position={[0, 1.05, 0.3]} />
+        <Designer
+          file="tm-menu-card"
+          scale={1.6}
+          position={[0, 1.05, -0.1]}
+          rotation={-Math.PI / 2}
+          fallback={<Prop src="restaurant-kaykit/menu.gltf" height={0.3} position={[0, 1.05, 0]} rotation={-Math.PI / 2} />}
+        />
+        <Designer
+          file="keepsake-taro-milk-tea"
+          scale={1.7}
+          position={[0, 1.05, 0.3]}
+          fallback={<Prop src="food-kenney/cup-tea.glb" height={0.1} position={[0, 1.05, 0.3]} />}
+        />
       </>
     ),
   },
-  { id: 'stitch', at: [-6.05, -4.1], y: 0.48, node: <Prop src="furniture-kenney/bear.glb" height={0.42} tint="#6fb4ff" rotation={Math.PI / 2} /> },
+  {
+    id: 'stitch',
+    at: [-6.05, -4.1],
+    y: 0.48,
+    node: (
+      <Designer
+        file="keepsake-stitch"
+        scale={1.4}
+        position={[0, -0.45, 0]}
+        rotation={Math.PI / 2}
+        fallback={<Prop src="furniture-kenney/bear.glb" height={0.42} tint="#6fb4ff" rotation={Math.PI / 2} />}
+      />
+    ),
+  },
   {
     id: 'photobooth-album',
     at: [-4.7, -5.1],
     node: (
       <>
         <Prop src="furniture-kaykit/table_low.gltf" height={0.42} width={1.3} rotation={Math.PI / 2} collide />
-        <Prop src="furniture-kaykit/book_set.gltf" height={0.14} position={[0, 0.42, 0]} rotation={0.4} />
+        <Designer
+          file="keepsake-photobooth-album"
+          scale={2}
+          position={[0, 0.42, 0]}
+          rotation={0.4}
+          fallback={<Prop src="furniture-kaykit/book_set.gltf" height={0.14} position={[0, 0.42, 0]} rotation={0.4} />}
+        />
       </>
     ),
   },
@@ -419,10 +562,18 @@ const SPOTS: Spot[] = [
     at: [-6.05, -6.1],
     y: 0.48,
     node: (
-      <>
-        <Prop src="furniture-kenney/bear.glb" height={0.3} tint="#ffffff" position={[0, 0, -0.18]} rotation={Math.PI / 2} />
-        <Prop src="furniture-kenney/bear.glb" height={0.33} tint="#a8774f" position={[0, 0, 0.18]} rotation={Math.PI / 2} />
-      </>
+      <Designer
+        file="keepsake-bubu-dudu"
+        scale={2}
+        position={[0, -0.45, 0]}
+        rotation={Math.PI / 2}
+        fallback={
+          <>
+            <Prop src="furniture-kenney/bear.glb" height={0.3} tint="#ffffff" position={[0, 0, -0.18]} rotation={Math.PI / 2} />
+            <Prop src="furniture-kenney/bear.glb" height={0.33} tint="#a8774f" position={[0, 0, 0.18]} rotation={Math.PI / 2} />
+          </>
+        }
+      />
     ),
   },
   {
@@ -430,14 +581,20 @@ const SPOTS: Spot[] = [
     at: [-6.85, -5.1],
     y: 1.4,
     node: (
-      <Frame
-        position={[0, 0, 0]}
-        rotation={Math.PI / 2}
-        height={1.0}
-        src="furniture-kaykit/pictureframe_large_A.gltf"
-        label="25 · 07"
-        sub="Sala, bông hoa khổng lồ"
-      />
+      <>
+        {/* the giant flower itself, standing on the floor under its photo (the group sits 1.4 m up the wall) */}
+        <Designer file="scene-sala-flower" scale={0.5} position={[0.95, -1.38, 0]} />
+        {/* the teddy that was hunted on sale that day, sitting at its foot */}
+        <Designer file="keepsake-sale-bear" scale={1.8} position={[0.6, -1.38, 0.4]} rotation={Math.PI / 2 - 0.6} />
+        <Frame
+          position={[0, 0, 0]}
+          rotation={Math.PI / 2}
+          height={1.0}
+          src="furniture-kaykit/pictureframe_large_A.gltf"
+          label="25 · 07"
+          sub="Sala, bông hoa khổng lồ"
+        />
+      </>
     ),
   },
   {
@@ -445,7 +602,32 @@ const SPOTS: Spot[] = [
     at: [-6.85, -7.9],
     y: 1.4,
     node: (
-      <Frame position={[0, 0, 0]} rotation={Math.PI / 2} height={0.6} src="furniture-kaykit/pictureframe_small_A.gltf" label="Bé Su" sub="tấm hình chét kem" />
+      <>
+        {/* her baby photo on a little table under the wall, its caption drawn on the blank picture (no photo ships) */}
+        <Prop src="furniture-kenney/sideTable.glb" height={0.72} position={[0.3, -1.38, 0]} rotation={Math.PI / 2} />
+        <Designer
+          file="tm-baby-photo-frame"
+          scale={1.7}
+          position={[0.3, -0.66, 0]}
+          rotation={Math.PI / 2}
+          fallback={
+            <Frame
+              position={[0, 0, 0]}
+              rotation={Math.PI / 2}
+              height={0.6}
+              src="furniture-kaykit/pictureframe_small_A.gltf"
+              label="Bé Su"
+              sub="tấm hình chét kem"
+            />
+          }
+        >
+          <Text position={[0, 0.2, 0.07]} fontSize={0.06} color="#5a3d2a" anchorX="center" maxWidth={0.2} textAlign="center">
+            {'Bé Su\ntấm hình chét kem'}
+          </Text>
+        </Designer>
+        {/* the mask she was afraid of as a child, on the floor under the photo */}
+        <Designer file="keepsake-mask-toy" scale={2.5} position={[0.35, -1.38, 0.65]} rotation={Math.PI / 2} />
+      </>
     ),
   },
   {
@@ -454,7 +636,13 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kenney/sideTableDrawers.glb" height={0.7} rotation={Math.PI / 2} collide />
-        <Prop src="furniture-kenney/radio.glb" height={0.22} position={[0, 0.7, 0]} rotation={Math.PI / 2} />
+        <Designer
+          file="keepsake-radio"
+          scale={1.3}
+          position={[0, 0.7, 0]}
+          rotation={Math.PI / 2}
+          fallback={<Prop src="furniture-kenney/radio.glb" height={0.22} position={[0, 0.7, 0]} rotation={Math.PI / 2} />}
+        />
       </>
     ),
   },
@@ -464,8 +652,14 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />
-        <Prop src="food-kenney/plate.glb" width={0.26} position={[0, 0.78, 0]} />
-        <Prop src="food-kenney/donut.glb" width={0.12} position={[0, 0.8, 0]} tint="#d98a3a" />
+        <Prop src="food-kenney/plate.glb" width={0.46} position={[0, 0.78, 0]} />
+        <Designer
+          file="keepsake-fried-chicken-plush"
+          scale={1.5}
+          position={[0, 0.8, 0]}
+          rotation={0.5}
+          fallback={<Prop src="food-kenney/donut.glb" width={0.12} position={[0, 0.8, 0]} tint="#d98a3a" />}
+        />
         <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0.85, 0, 0]} rotation={-Math.PI / 2} collide />
         <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[-0.85, 0, 0]} rotation={Math.PI / 2} collide />
       </>
@@ -477,9 +671,34 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />
-        <Prop src="food-kenney/bowl.glb" width={0.3} position={[-0.15, 0.78, 0]} />
-        <Prop src="food-kenney/croissant.glb" width={0.18} position={[-0.15, 0.84, 0]} />
+        {/* the bag of bread loaves from that day */}
+        <Designer
+          file="tm-banh-mi-bag"
+          scale={1}
+          position={[-0.15, 0.78, 0]}
+          rotation={0.3}
+          fallback={
+            <>
+              <Prop src="food-kenney/bowl.glb" width={0.3} position={[-0.15, 0.78, 0]} />
+              <Prop src="food-kenney/croissant.glb" width={0.18} position={[-0.15, 0.84, 0]} />
+            </>
+          }
+        />
         <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, 0.85]} rotation={Math.PI} collide />
+        {/* the red and blue raincoats of that day, hung to dry on a rod from the ceiling beside the table */}
+        <group position={[1.35, 0, -0.1]}>
+          <mesh position={[0, 1.78, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.015, 0.015, 1.1, 8]} />
+            <meshStandardMaterial color="#3b2a1f" roughness={0.6} />
+          </mesh>
+          {[-0.5, 0.5].map((x) => (
+            <mesh key={x} position={[x, 3, 0]}>
+              <cylinderGeometry args={[0.006, 0.006, 2.44, 4]} />
+              <meshBasicMaterial color="#111" />
+            </mesh>
+          ))}
+          <Designer file="keepsake-raincoats" scale={0.85} position={[0, 1.78, 0.04]} />
+        </group>
       </>
     ),
   },
@@ -488,20 +707,35 @@ const SPOTS: Spot[] = [
     at: [3.0, -8.2],
     node: (
       <>
-        <Prop src="food-kenney/soda-glass.glb" height={0.2} position={[0, 0.78, 0]} />
+        <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
+        <Designer
+          file="keepsake-bubble-wand"
+          scale={3}
+          position={[0, 0.72, 0]}
+          fallback={<Prop src="food-kenney/soda-glass.glb" height={0.2} position={[0, 0.78, 0]} />}
+        />
         <Sparkles position={[0, 1.2, 0]} count={14} scale={[0.6, 0.6, 0.6]} size={6} color="#cfe8ff" speed={0.3} />
       </>
     ),
   },
-  { id: 'mini-lanterns', at: [0.2, -3.6], node: <Lanterns position={[0, 2.6, 0]} /> },
+  { id: 'mini-lanterns', at: [0.2, -3.6], node: <Lanterns position={[0, 2.75, 0]} /> },
   {
     id: 'lily-hcmue',
     at: [6.0, -4.4],
     node: (
       <>
         <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
-        <Prop src="restaurant-kaykit/jar_C_large.gltf" height={0.34} position={[0, 0.8, 0]} />
-        <Bouquet position={[0, 1.08, 0]} colors={['#ffffff', '#fff6d0', '#ffffff', '#fff6d0', '#ffffff']} scale={1.2} />
+        <Designer
+          file="keepsake-white-lily"
+          scale={1.8}
+          position={[0, 0.8, 0]}
+          fallback={
+            <>
+              <Prop src="restaurant-kaykit/jar_C_large.gltf" height={0.34} position={[0, 0.8, 0]} />
+              <Bouquet position={[0, 1.08, 0]} colors={['#ffffff', '#fff6d0', '#ffffff', '#fff6d0', '#ffffff']} scale={1.2} />
+            </>
+          }
+        />
       </>
     ),
   },
@@ -511,9 +745,25 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
-        <Bouquet position={[0, 0.8, -0.25]} colors={['#ff8fb0', '#ffffff', '#ffd1e0']} />
-        <Bouquet position={[0, 0.8, 0.25]} colors={['#f2c14e', '#ff6a3d', '#fff2a8']} scale={0.9} />
-        <Prop src="restaurant-kaykit/jar_B_small.gltf" height={0.18} position={[0.2, 0.8, 0]} />
+        <Designer
+          file="keepsake-ten-oclock-flower"
+          scale={2.4}
+          position={[0, 0.8, -0.28]}
+          fallback={<Bouquet position={[0, 0.8, -0.25]} colors={['#ff8fb0', '#ffffff', '#ffd1e0']} />}
+        />
+        {/* the florist's flower cart (her dream) takes the place of the code-built bouquet and jar */}
+        <Designer
+          file="keepsake-flower-shop"
+          scale={0.8}
+          position={[0, 0.8, 0.22]}
+          rotation={-Math.PI / 2}
+          fallback={
+            <>
+              <Bouquet position={[0, 0.8, 0.25]} colors={['#f2c14e', '#ff6a3d', '#fff2a8']} scale={0.9} />
+              <Prop src="restaurant-kaykit/jar_B_small.gltf" height={0.18} position={[0.2, 0.8, 0]} />
+            </>
+          }
+        />
       </>
     ),
   },
@@ -523,8 +773,19 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
-        <Prop src="restaurant-kaykit/jar_D_medium.gltf" height={0.28} position={[0, 0.8, 0]} />
-        <Bouquet position={[0, 1.02, 0]} colors={['#e0344f', '#ff5f7a', '#e0344f', '#ff9fb5', '#e0344f']} scale={1.25} />
+        {/* the MC certificate she collected that day, framed on the wall behind the roses */}
+        <Designer file="keepsake-mc-certificate" scale={2} position={[0.95, 1.5, 0]} rotation={-Math.PI / 2} shadows={false} />
+        <Designer
+          file="keepsake-ecuador-roses"
+          scale={1.5}
+          position={[0, 0.8, 0]}
+          fallback={
+            <>
+              <Prop src="restaurant-kaykit/jar_D_medium.gltf" height={0.28} position={[0, 0.8, 0]} />
+              <Bouquet position={[0, 1.02, 0]} colors={['#e0344f', '#ff5f7a', '#e0344f', '#ff9fb5', '#e0344f']} scale={1.25} />
+            </>
+          }
+        />
       </>
     ),
   },
@@ -534,18 +795,46 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
-        <Camera35 position={[0, 0.72, 0]} rotation={-Math.PI / 2} />
+        <Designer
+          file="keepsake-film-camera"
+          scale={2.4}
+          position={[0, 0.72, 0]}
+          rotation={-Math.PI / 2}
+          fallback={<Camera35 position={[0, 0.72, 0]} rotation={-Math.PI / 2} />}
+        />
       </>
     ),
   },
-  { id: 'chalkboard', at: [4.4, -11.7], y: 1.5, node: <Chalkboard position={[0, 0, 0]} /> },
+  {
+    id: 'chalkboard',
+    at: [4.4, -11.7],
+    y: 1.5,
+    node: (
+      // the easel board stands on the floor (the group sits 1.5 m up the wall); the caption is drawn on its dark face
+      <Designer file="tm-chalkboard" scale={1.9} position={[0, -1.48, 0.1]} fallback={<Chalkboard position={[0, 0, 0]} />}>
+        <Text position={[0, 0.95, 0.12]} fontSize={0.12} color="#f4f1e6" anchorX="center" maxWidth={0.7} textAlign="center">
+          Cô Su ♡
+        </Text>
+        <Text position={[0, 0.78, 0.12]} fontSize={0.05} color="#f4f1e6" anchorX="center" maxWidth={0.7} textAlign="center">
+          {'Sư phạm Tiểu học · HCMUE\nhọc trò ngoan, cô thương'}
+        </Text>
+      </Designer>
+    ),
+  },
   {
     id: 'banh-trang-jar',
     at: [2.4, -11.4],
     node: (
       <>
         <Prop src="furniture-kaykit/cabinet_small.gltf" height={0.9} collide />
-        <Prop src="restaurant-kaykit/jar_B_large.gltf" height={0.36} position={[0, 0.9, 0]} tint="#ffe6b0" />
+        <Designer
+          file="keepsake-rice-paper-jar"
+          scale={2.4}
+          position={[-0.12, 0.9, 0]}
+          fallback={<Prop src="restaurant-kaykit/jar_B_large.gltf" height={0.36} position={[0, 0.9, 0]} tint="#ffe6b0" />}
+        />
+        {/* the guava from the same visit, still with its stem */}
+        <Designer file="keepsake-guava" scale={1.6} position={[0.2, 0.9, 0.02]} />
       </>
     ),
   },
@@ -555,7 +844,12 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kaykit/cabinet_medium.gltf" height={0.9} width={1.2} collide />
-        <FishTank position={[0, 0.9, 0]} />
+        {/* the designer's tank has an opaque water mesh (top face at 0.237 m before scaling), so the animated guppies swim just above it */}
+        <Designer file="keepsake-guppy-tank" scale={1.7} position={[-0.18, 0.9, 0]} fallback={<FishTank position={[0, 0.9, 0]} />}>
+          <GuppySchool position={[0, 0.237 * 1.7, 0]} halfX={0.28} halfZ={0.1} />
+        </Designer>
+        <Designer file="keepsake-blue-hydrangea" scale={1.3} position={[0.42, 0.9, 0.02]} />
+        <pointLight position={[-0.18, 1.35, 0.3]} color="#8fd0ff" intensity={1.2} distance={2.2} />
       </>
     ),
   },
@@ -564,8 +858,16 @@ const SPOTS: Spot[] = [
     at: [-2.0, -11.4],
     node: (
       <>
-        <Prop src="furniture-kenney/bookcaseOpen.glb" height={2.0} collide />
-        <Prop src="furniture-kenney/bear.glb" height={0.32} tint="#8a5a3a" position={[0, 1.02, 0.05]} />
+        <Designer file="scene-bookcase" scale={1.05} collide fallback={<Prop src="furniture-kenney/bookcaseOpen.glb" height={2.0} collide />} />
+        <Designer file="keepsake-mc-mic" scale={1.6} position={[0.38, 2.05, 0.02]} />
+        {/* the very long letter, folded on top of the case */}
+        <Designer file="tm-long-letter" scale={1.8} position={[-0.38, 2.05, 0.02]} rotation={0.35} />
+        <Designer
+          file="keepsake-pajama-bear"
+          scale={1.5}
+          position={[0, 2.05, 0.02]}
+          fallback={<Prop src="furniture-kenney/bear.glb" height={0.32} tint="#8a5a3a" position={[0, 2.05, 0.05]} />}
+        />
       </>
     ),
   },
@@ -575,7 +877,12 @@ const SPOTS: Spot[] = [
     node: (
       <>
         <Prop src="furniture-kaykit/shelf_B_large_decorated.gltf" width={1.8} height={0.8} collide />
-        <Prop src="street-misc/present.glb" height={0.22} position={[0.3, 0.8, 0.05]} tint="#ffd9a0" />
+        <Designer
+          file="keepsake-shell-car"
+          scale={2.5}
+          position={[0.3, 0.8, 0.05]}
+          fallback={<Prop src="street-misc/present.glb" height={0.22} position={[0.3, 0.8, 0.05]} tint="#ffd9a0" />}
+        />
       </>
     ),
   },
@@ -584,14 +891,19 @@ const SPOTS: Spot[] = [
     at: [-6.85, -10.5],
     y: 1.45,
     node: (
-      <Frame
-        position={[0, 0, 0]}
-        rotation={Math.PI / 2}
-        height={0.55}
-        src="furniture-kaykit/pictureframe_small_B.gltf"
-        label="Thư tình gửi ngoại"
-        sub="08 · 08"
-      />
+      <>
+        <Frame
+          position={[0, 0, 0]}
+          rotation={Math.PI / 2}
+          height={0.55}
+          src="furniture-kaykit/pictureframe_small_B.gltf"
+          label="Thư tình gửi ngoại"
+          sub="08 · 08"
+        />
+        {/* the two ticket stubs, on a little table under the poster (the group sits 1.45 m up the wall) */}
+        <Prop src="furniture-kenney/sideTable.glb" height={0.72} position={[0.35, -1.43, 0.1]} rotation={Math.PI / 2} />
+        <Designer file="tm-movie-ticket-pair" scale={2.4} position={[0.35, -0.71, 0.1]} rotation={Math.PI / 2 + 0.3} />
+      </>
     ),
   },
 ];
@@ -751,23 +1063,25 @@ export default function World({ preview = false }: { preview?: boolean }) {
         shadow-camera-bottom={-14}
         shadow-bias={-0.0005}
       />
-      <Physics gravity={[0, -9.81, 0]}>
-        <Suspense fallback={null}>
-          <Street />
-          <Facade />
-          <Door />
-          <Interior />
-          {SPOTS.map((s) => (
-            <MemorySpot key={s.id} s={s} />
-          ))}
-          {CHAPTER_META.map((c, i) => (
-            <ChapterFrame key={c.id} i={i} />
-          ))}
-          <ChapterTrail />
-          <ChapterSign />
-        </Suspense>
-        {!preview && <Couple spawn={spawn} />}
-      </Physics>
+      <DesignerEnabled.Provider value={!preview}>
+        <Physics gravity={[0, -9.81, 0]}>
+          <Suspense fallback={null}>
+            <Street />
+            <Facade />
+            <Door />
+            <Interior />
+            {SPOTS.map((s) => (
+              <MemorySpot key={s.id} s={s} />
+            ))}
+            {CHAPTER_META.map((c, i) => (
+              <ChapterFrame key={c.id} i={i} />
+            ))}
+            <ChapterTrail />
+            <ChapterSign />
+          </Suspense>
+          {!preview && <Couple spawn={spawn} />}
+        </Physics>
+      </DesignerEnabled.Provider>
       <Rain count={touch ? 900 : 2000} indoorBox={indoor} />
       {preview && <PreviewCamera />}
       <EffectComposer multisampling={touch ? 0 : 4}>

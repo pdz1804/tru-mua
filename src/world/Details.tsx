@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { Prop } from './Prop';
+import { Designer } from './Designer';
 
 /** Small hand-built props for things no CC0 pack has: bouquets, lanterns, a fish tank, a chalkboard, a camera. */
 
@@ -52,26 +53,90 @@ export function Lanterns({ position }: { position: [number, number, number] }) {
   const mats = useMemo(() => [glow(3, 1.2, 0.5), glow(3, 2.2, 0.7)], []);
   return (
     <group ref={g} position={position}>
-      {[-0.35, 0.35].map((x, i) => (
-        <group key={x} position={[x, -0.2 * i, 0]}>
-          <mesh position={[0, 0.5, 0]}>
+      {/*
+        The designer's pair of lanterns (each shell has its own glow material). Measured at scale 1.7 with the model set
+        0.3 m down: the shells sit at x = ±0.12, y = -0.09 and the handles reach up to y = 0.125 at x ≈ ±0.085, so the two
+        cords hang from there. The code-built bulbs stand in until it loads; the cords, the lights and the sway are shared.
+      */}
+      <Designer
+        file="keepsake-two-lanterns"
+        scale={1.7}
+        shadows={false}
+        position={[0, -0.3, 0]}
+        fallback={
+          <>
+            {[-0.14, 0.14].map((x, i) => (
+              <group key={x} position={[x, -0.09, 0]}>
+                <mesh material={mats[i]} scale={[1, 1.15, 1]}>
+                  <sphereGeometry args={[0.13, 16, 12]} />
+                </mesh>
+                <mesh position={[0, 0.15, 0]}>
+                  <cylinderGeometry args={[0.06, 0.075, 0.05, 12]} />
+                  <meshStandardMaterial color="#b8892f" metalness={0.6} roughness={0.3} />
+                </mesh>
+                <mesh position={[0, -0.2, 0]}>
+                  <coneGeometry args={[0.03, 0.14, 8]} />
+                  <meshStandardMaterial color="#d8342c" />
+                </mesh>
+              </group>
+            ))}
+          </>
+        }
+      />
+      {[-0.12, 0.12].map((x, i) => (
+        <group key={x}>
+          <mesh position={[x * 0.7, 0.625, 0]}>
             <cylinderGeometry args={[0.004, 0.004, 1, 4]} />
             <meshBasicMaterial color="#222" />
           </mesh>
-          <mesh material={mats[i]} scale={[1, 1.15, 1]}>
-            <sphereGeometry args={[0.16, 16, 12]} />
-          </mesh>
-          <mesh position={[0, 0.18, 0]}>
-            <cylinderGeometry args={[0.07, 0.09, 0.05, 12]} />
-            <meshStandardMaterial color="#b8892f" metalness={0.6} roughness={0.3} />
-          </mesh>
-          <mesh position={[0, -0.25, 0]}>
-            <coneGeometry args={[0.03, 0.14, 8]} />
-            <meshStandardMaterial color="#d8342c" />
-          </mesh>
-          <pointLight position={[0, -0.05, 0]} color={i ? '#ffc070' : '#ff8a50'} intensity={1.6} distance={3} decay={2} />
+          <pointLight position={[x, -0.09, 0]} color={i ? '#ffc070' : '#ff8a50'} intensity={1.6} distance={3} decay={2} />
         </group>
       ))}
+    </group>
+  );
+}
+
+const GUPPY_COLORS = ['#ff6a3d', '#3db7ff', '#ffd23d', '#ff5fa2', '#7dffb0', '#c39bff'];
+
+/**
+ * Animated guppies for the designer's tank, whose water is an opaque mesh: the fish swim in a shallow glassy slab just
+ * above the water's top face (`position` is the centre of that face), so they stay visible from above and from the front.
+ */
+export function GuppySchool({ position, halfX, halfZ, size = 0.7 }: { position: [number, number, number]; halfX: number; halfZ: number; size?: number }) {
+  const fish = useRef<THREE.Group[]>([]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    fish.current.forEach((f, i) => {
+      if (!f) return;
+      const k = t * (0.5 + i * 0.13) + i * 2;
+      f.position.set(Math.sin(k) * halfX, 0.025 + Math.sin(k * 1.7) * 0.008 + i * 0.002, Math.cos(k * 0.7) * halfZ);
+      f.rotation.y = Math.cos(k) > 0 ? 0 : Math.PI;
+    });
+  });
+  return (
+    <group position={position}>
+      {GUPPY_COLORS.map((c, i) => (
+        <group
+          key={c}
+          ref={(g) => {
+            if (g) fish.current[i] = g;
+          }}
+          scale={size}
+        >
+          <mesh scale={[1.6, 0.8, 0.5]}>
+            <sphereGeometry args={[0.05, 10, 8]} />
+            <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.35} />
+          </mesh>
+          <mesh position={[-0.09, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <coneGeometry args={[0.05, 0.08, 6]} />
+            <meshStandardMaterial color={c} />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[halfX * 2.5, halfZ * 2.6]} />
+        <meshBasicMaterial color="#8fd0ff" transparent opacity={0.22} depthWrite={false} />
+      </mesh>
     </group>
   );
 }

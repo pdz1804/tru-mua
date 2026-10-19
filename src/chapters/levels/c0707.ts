@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { TUNING, thunderMul } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
+import { swapDesigner } from '../engine/designer';
 import { awning, clamp, damp, glow, lamp, lerp, makeItem, ol, setSeed, sprite, std, streetRow, tiled, tiles, asphalt, toon, wires } from '../engine/kit';
 
 const FRONT = -4.4;
@@ -149,9 +150,14 @@ export class Chapter0707 implements Level {
       [gx + 0.1, -2.4],
     ];
     this.stools.forEach(([x, z]) => {
+      // the code-built stool stands in until the designer's red stool arrives (same height and footprint, seat on the pavement)
+      const stool = new THREE.Group();
       const s = ol(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.45, 14), toon(0xd8342c)));
-      s.position.set(x, 0.36, z);
-      w.add(s);
+      s.position.y = 0.225;
+      stool.add(s);
+      stool.position.set(x, 0.135, z);
+      w.add(stool);
+      void swapDesigner(e, stool, 'tm-red-stool', { scale: 1.45, toon: true });
     });
     awning(w, gx - 3, gx + 3, FRONT, '#f2c14e', '#fff1c4');
     const warm = new THREE.PointLight(0xffc56b, 10, 12, 1.5);
@@ -164,6 +170,13 @@ export class Chapter0707 implements Level {
       ] as const
     ).map((it) => {
       const m = makeItem(it.k);
+      // the rice-paper jar and the chicken bucket stand in for the snack bag and the fried chicken once loaded;
+      // toon-skinned, because the lit PBR material washes out against the chapters' cel-shaded look
+      void swapDesigner(e, m, it.k === 'bt' ? 'keepsake-rice-paper-jar' : 'tm-chicken-bucket', {
+        scale: it.k === 'bt' ? 3.2 : 2.4,
+        center: true,
+        toon: true,
+      });
       m.position.set(it.x, it.y, it.z);
       w.add(m);
       return { ...it, m, got: false };

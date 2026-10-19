@@ -467,9 +467,11 @@ export function makeScooter(col: number, coatCol: number, withBeam = true): Vehi
   });
   const coat = ol(new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.15, 14, 1, true), toon(coatCol, { side: THREE.DoubleSide })), 1.03);
   coat.position.set(0.18, 1.3, 0);
+  coat.userData.keep = true; // the rider and the beam stay when a designer scooter replaces the body
   g.add(coat);
   const helm = ol(new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), toon(0xf2f2f2)));
   helm.position.set(0.12, 1.95, 0);
+  helm.userData.keep = true;
   g.add(helm);
   const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), glow(0xfff2c4, 4));
   lamp.position.set(-0.76, 1.05, 0);
@@ -478,6 +480,7 @@ export function makeScooter(col: number, coatCol: number, withBeam = true): Vehi
     const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 5, 20, 1, true), beamMat(0.08));
     beam.rotation.z = -Math.PI / 2;
     beam.position.set(-3.3, 0.75, 0);
+    beam.userData.keep = true;
     g.add(beam);
   }
   const halo = sprite(0xfff0c0, 0.9, 1.2);
@@ -562,7 +565,7 @@ export function makeExciter(): Vehicle {
   return g;
 }
 
-export type Person = THREE.Group & { userData: { arm: THREE.Mesh } };
+export type Person = THREE.Group & { userData: { arm: THREE.Mesh; umb?: THREE.Group } };
 export function makePerson(coat: number, hasUmb: boolean): Person {
   const g = new THREE.Group() as Person;
   const skin = toon(0xe9c09e);
@@ -583,6 +586,7 @@ export function makePerson(coat: number, hasUmb: boolean): Person {
     u.scale.setScalar(0.8);
     u.position.set(-0.2, 2.0, 0);
     g.add(u);
+    g.userData.umb = u;
   }
   g.userData.arm = arm;
   return g;
