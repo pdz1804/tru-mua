@@ -10,6 +10,8 @@ type Dev = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   __ch: any;
 };
+/** Software WebGL on CI renders ~1-2 fps and the sim steps at most 0.05 s of game time per frame, so waits scale up there. */
+const SLOW = process.env.CI ? 4 : 1;
 const shot = (page: Page, name: string, project: string) => page.screenshot({ path: `test-results/shots/${project}-ch-${name}.png` });
 
 const opacityOf = (page: Page, selector: string) => page.locator(selector).evaluate((el) => getComputedStyle(el).opacity);
@@ -50,7 +52,7 @@ const place = (page: Page, x: number, z: number, y = 0.14) =>
     },
     [x, z, y],
   );
-const postcard = (page: Page) => expect(page.locator('.post')).toBeVisible({ timeout: 90_000 });
+const postcard = (page: Page) => expect(page.locator('.post')).toBeVisible({ timeout: 90_000 * SLOW });
 
 test('menu: the title card lists the chapters and starts one with its how-to card', async ({ page }, info) => {
   const errors: string[] = [];
@@ -111,7 +113,7 @@ test('25·07: two photos, the flowers, the confession, the rain, the hug', async
     await expect(async () => {
       await page.keyboard.press('KeyF');
       await expect(counter).toContainText(n, { timeout: 3000 });
-    }).toPass({ timeout: 45_000 });
+    }).toPass({ timeout: 45_000 * SLOW });
   }
   await shot(page, '2507-photos', info.project.name);
   const yes = page.getByRole('button', { name: 'Đồng ý', exact: true });
@@ -120,7 +122,7 @@ test('25·07: two photos, the flowers, the confession, the rain, the hug', async
     await expect(yes).toBeVisible({ timeout: 3000 });
   }).toPass({ timeout: 60_000 });
   // the choice box takes the talk line's place, so the line steps aside
-  await expect.poll(() => opacityOf(page, '.chud .talk'), { timeout: 5000 }).toBe('0');
+  await expect.poll(() => opacityOf(page, '.chud .talk'), { timeout: 5000 * SLOW }).toBe('0');
   await shot(page, '2507-confession', info.project.name);
   await yes.click();
   await expect(page.locator('.chud .obj')).toContainText('đu trend', { timeout: 60_000 });
@@ -144,7 +146,7 @@ test('25·07: two photos, the flowers, the confession, the rain, the hug', async
     expect(r.x).toBeGreaterThan(55);
     expect(r.sheltered).toBe(true);
     expect(r.wetS).toBeLessThanOrEqual(40);
-  }).toPass({ timeout: 30_000 });
+  }).toPass({ timeout: 30_000 * SLOW });
   await place(page, 64, -2.4);
   await expect(async () => {
     await page.keyboard.press('KeyR');
