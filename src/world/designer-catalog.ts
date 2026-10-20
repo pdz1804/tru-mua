@@ -57,6 +57,8 @@ export const DESIGNER_FILES = [
   'tm-baby-photo-frame',
   'tm-bouquet-wrapped',
   'tm-chalkboard',
+  'tm-exciter',
+  'tm-raincoat-worn',
 ] as const;
 export type DesignerFile = (typeof DESIGNER_FILES)[number];
 

@@ -18,4 +18,4 @@ keepsake-mc-mic, keepsake-flower-shop.
 
 Built for this app (same pipeline, also original work): tm-umbrella-open, tm-banh-mi, tm-banh-mi-bag, tm-scooter, tm-truck,
 tm-chicken-bucket, tm-movie-ticket-pair, tm-long-letter, tm-menu-card, tm-firefly-necklace, tm-baby-photo-frame,
-tm-bouquet-wrapped, tm-chalkboard, tm-red-stool.
+tm-bouquet-wrapped, tm-chalkboard, tm-red-stool, tm-exciter, tm-raincoat-worn.

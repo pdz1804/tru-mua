@@ -560,6 +560,7 @@ export function makeExciter(): Vehicle {
   const beam = new THREE.Mesh(new THREE.ConeGeometry(1.6, 7, 20, 1, true), beamMat(0.07));
   beam.rotation.z = -Math.PI / 2;
   beam.position.set(-4.4, 0.7, 0);
+  beam.userData.keep = true; // the headlight beam stays when the designer bike replaces the body
   g.add(beam);
   g.userData.wheels = wheels;
   return g;

@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { TUNING, serveBread, shieldStamp, shouldWarn, truckHit } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
-import { FIT, swapDesigner } from '../engine/designer';
+import { FIT, RAINCOAT_FIT, swapDesigner, wearDesigner } from '../engine/designer';
 import {
   clamp,
   damp,
@@ -136,8 +136,25 @@ export class Chapter1309 implements Level {
     this.ex = makeExciter();
     this.ex.rotation.y = Math.PI;
     this.bike.add(this.ex);
+    void swapDesigner(e, this.ex, 'tm-exciter', FIT.exciter);
     this.phu = makeChar('phu', e.opts.phu);
     this.su = makeChar('su', e.opts.su);
+    // the designer raincoats replace the code-built cone and hood once they arrive
+    (
+      [
+        [this.phu, 'poncho_phu', false],
+        [this.su, 'poncho_su', true],
+      ] as const
+    ).forEach(([r, node, translucent]) => {
+      void wearDesigner(e, r.body, 'tm-raincoat-worn', node, {
+        ...RAINCOAT_FIT,
+        translucent,
+        after: () => {
+          r.poncho.visible = false;
+          r.hood.visible = false;
+        },
+      });
+    });
     [this.phu, this.su].forEach((r) => {
       r.poncho.visible = true;
       r.hood.visible = true;
