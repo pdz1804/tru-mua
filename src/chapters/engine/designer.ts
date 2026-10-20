@@ -80,6 +80,8 @@ export interface WearOptions {
   neck?: [number, number, number];
   /** Translucent garments blend and never write depth, so the rider shows through. */
   translucent?: boolean;
+  /** Re-hue the garment's coloured parts to this colour; near-white trims (snaps, piping) keep their own. */
+  hue?: THREE.ColorRepresentation;
   /** Called with the placed garment once it is in the parent. */
   after?: (garment: THREE.Object3D) => void;
 }
@@ -106,7 +108,17 @@ export async function wearDesigner(e: Engine, parent: THREE.Object3D, name: stri
       m.receiveShadow = false;
       const mats = (Array.isArray(m.material) ? m.material : [m.material]).map((mat) => {
         const s = mat as THREE.MeshStandardMaterial;
-        const t = toon(s.color ?? 0xffffff, { map: s.map, side: THREE.DoubleSide });
+        const color = new THREE.Color(s.color ?? 0xffffff);
+        if (opts.hue !== undefined) {
+          // baked colours live in the texture, so tint multiplies it; flat-coloured parts are re-hued instead
+          if (s.map) color.set(opts.hue);
+          else {
+            const from = color.getHSL({ h: 0, s: 0, l: 0 });
+            const to = new THREE.Color(opts.hue).getHSL({ h: 0, s: 0, l: 0 });
+            if (from.s > 0.25) color.setHSL(to.h, Math.max(from.s, to.s), from.l);
+          }
+        }
+        const t = toon(color, { map: s.map, side: THREE.DoubleSide });
         if (opts.translucent) {
           t.transparent = true;
           t.opacity = s.opacity < 1 ? s.opacity : 0.6;

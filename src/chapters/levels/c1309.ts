@@ -139,16 +139,17 @@ export class Chapter1309 implements Level {
     void swapDesigner(e, this.ex, 'tm-exciter', FIT.exciter);
     this.phu = makeChar('phu', e.opts.phu);
     this.su = makeChar('su', e.opts.su);
-    // the designer raincoats replace the code-built cone and hood once they arrive
+    // the designer raincoats replace the code-built cone and hood once they arrive; that night Phú's coat was red
     (
       [
-        [this.phu, 'poncho_phu', false],
-        [this.su, 'poncho_su', true],
+        [this.phu, 'poncho_phu', false, 0xd8432f],
+        [this.su, 'poncho_su', true, undefined],
       ] as const
-    ).forEach(([r, node, translucent]) => {
+    ).forEach(([r, node, translucent, hue]) => {
       void wearDesigner(e, r.body, 'tm-raincoat-worn', node, {
         ...RAINCOAT_FIT,
         translucent,
+        hue,
         after: () => {
           r.poncho.visible = false;
           r.hood.visible = false;
