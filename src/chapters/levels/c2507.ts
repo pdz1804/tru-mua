@@ -304,6 +304,9 @@ export class Chapter2507 implements Level {
     return this.phase !== 'rain' && this.phase !== 'hug' ? true : c.x > this.cafeX - 4 && c.x < this.cafeX + 4 && c.z < -1.3;
   }
   /** Trung Nguyên's awning is the only shelter once the rain starts, wherever on the promenade they are. */
+  shelterSpots() {
+    return [this.cafeX - 2];
+  }
   checkpoint() {
     return this.phase === 'rain' ? this.cafeX - 2 : null;
   }

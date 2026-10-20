@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   TUNING,
   afterSneeze,
+  sneezeRespawnX,
+  wetAfterSneeze,
   jumpHeight,
   scooterHit,
   serveBread,
@@ -50,6 +52,20 @@ describe('rain chapter balance matches the design table', () => {
   it('wading through a puddle slows both walkers', () => {
     expect(speedFactor({ holding: false, distance: 2, inPuddle: true })).toBe(TUNING.puddleSlow);
     expect(speedFactor({ holding: false, distance: 0.5, inPuddle: true })).toBeCloseTo(TUNING.closeSlow * TUNING.puddleSlow);
+  });
+});
+
+describe('sneeze respawn', () => {
+  it('picks the nearest shelter behind the sneezer, else the closest ahead, else the fallback', () => {
+    expect(sneezeRespawnX(50, [10, 30, 70], 3)).toBe(30);
+    expect(sneezeRespawnX(30, [10, 30, 70], 3)).toBe(30);
+    expect(sneezeRespawnX(5, [10, 30], 3)).toBe(10);
+    expect(sneezeRespawnX(50, [], 3)).toBe(3);
+  });
+  it('resets only the sneezer to the reset level; the partner never rises', () => {
+    expect(wetAfterSneeze({ p: 100, s: 0 }, 'p')).toEqual({ p: TUNING.sneezeResetTo, s: 0 });
+    expect(wetAfterSneeze({ p: 20, s: 100 }, 's')).toEqual({ p: 20, s: TUNING.sneezeResetTo });
+    expect(wetAfterSneeze({ p: 90, s: 100 }, 's')).toEqual({ p: TUNING.sneezeResetTo, s: TUNING.sneezeResetTo });
   });
 });
 

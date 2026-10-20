@@ -1028,11 +1028,15 @@ function ChapterSign() {
 }
 
 /** Slow establishing shot for the title screen. */
+const SIGN_VIEW_WIDTH = 5.6;
 function PreviewCamera() {
   const { camera } = useThree();
   useFrame(({ clock }) => {
     const t = clock.elapsedTime * 0.06;
-    camera.position.set(Math.sin(t) * 3.5, 2.2 + Math.sin(t * 2) * 0.2, 9.5);
+    // a phone-width canvas sees less of the street at the same distance: back off until the whole sign (about 5.6 m with margin) fits
+    const cam = camera as THREE.PerspectiveCamera;
+    const dist = Math.max(9.5, SIGN_VIEW_WIDTH / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2) * cam.aspect));
+    camera.position.set(Math.sin(t) * 3.5, 2.2 + Math.sin(t * 2) * 0.2, dist);
     camera.lookAt(0, 2.1, 0);
   });
   return null;

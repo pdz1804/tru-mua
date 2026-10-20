@@ -485,6 +485,15 @@ kbd {
   color: var(--muted);
 }
 
+/* the same message, floated over the 3D canvas while the street loads */
+.loader.inline {
+  position: static;
+  background: none;
+  font-size: 22px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* ---------- rain chapters (HUD from the design prototype) ---------- */
 .chapter-stage {
   position: absolute;

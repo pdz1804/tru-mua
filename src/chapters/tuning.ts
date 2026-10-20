@@ -86,6 +86,26 @@ export function thunderMul(t: number) {
 /** Wetness after a sneeze: whoever is wetter than the reset level drops to it; the dry one stays dry. */
 export const afterSneeze = (wet: number) => Math.min(wet, TUNING.sneezeResetTo);
 
+/**
+ * Where the couple stand after a sneeze: the nearest shelter spot at or behind the sneezer (`x`),
+ * else the closest one ahead, else `fallback` (the last place they were covered).
+ */
+export function sneezeRespawnX(x: number, spots: readonly number[], fallback: number) {
+  let behind: number | null = null;
+  let ahead: number | null = null;
+  for (const s of spots) {
+    if (s <= x) behind = behind == null || s > behind ? s : behind;
+    else ahead = ahead == null || s < ahead ? s : ahead;
+  }
+  return behind ?? ahead ?? fallback;
+}
+
+/** Wetness of each person after one of them sneezes: the sneezer drops to the reset level, the other never rises. */
+export function wetAfterSneeze(wet: { p: number; s: number }, sneezer: 'p' | 's') {
+  const reset = (v: number) => Math.min(v, TUNING.sneezeResetTo);
+  return { p: sneezer === 'p' ? TUNING.sneezeResetTo : reset(wet.p), s: sneezer === 's' ? TUNING.sneezeResetTo : reset(wet.s) };
+}
+
 /** Show the warning once the vehicle is within `warnSec` of reaching us. `gap` in m, `closing` in m/s. */
 export function shouldWarn(gap: number, closing: number) {
   return closing > 0 && gap > 0 && gap / closing <= TUNING.warnSec;

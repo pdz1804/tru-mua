@@ -86,7 +86,7 @@ function Meter({ name, value, icon }: { name: string; value: number; icon?: stri
         </span>
         <span>{wetWord(value)}</span>
       </div>
-      <div className="t">
+      <div className="t" role="progressbar" aria-label={`${name}: ${wetWord(value)}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value)}>
         <b style={{ width: `${value}%` }} />
       </div>
     </div>

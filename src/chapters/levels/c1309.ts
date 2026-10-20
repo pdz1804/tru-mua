@@ -260,6 +260,9 @@ export class Chapter1309 implements Level {
   shelter() {
     return false;
   }
+  shelterSpots() {
+    return [];
+  }
   checkpoint() {
     return null;
   }
