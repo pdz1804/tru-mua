@@ -1,5 +1,7 @@
 # Trú Mưa
 
+[![CI](https://github.com/pdz1804/tru-mua/actions/workflows/ci.yml/badge.svg)](https://github.com/pdz1804/tru-mua/actions/workflows/ci.yml) [![Deploy](https://github.com/pdz1804/tru-mua/actions/workflows/deploy.yml/badge.svg)](https://github.com/pdz1804/tru-mua/actions/workflows/deploy.yml) [![Live](https://img.shields.io/badge/live-tru--mua.web.app-f2c14e)](https://tru-mua.web.app)
+
 A walkable 3D memory café, made by Phú for Su.
 
 Su and Phú start on a rainy Saigon sidewalk in front of a café door. Inside the room are 27 real memories of the two of them, from the first bouquet on 13/06 to the Ecuador roses on 04/10. Walk up to one and open it to read its note.
