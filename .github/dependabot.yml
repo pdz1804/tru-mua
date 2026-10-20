@@ -1,16 +1,21 @@
 version: 2
 updates:
+  # one weekly PR of safe updates; majors (React 19, R3F 9, three) are upgraded deliberately, not by bot
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly, day: monday, time: '08:00', timezone: Asia/Ho_Chi_Minh }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     commit-message: { prefix: 'chore(deps)' }
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
-      three-stack:
-        patterns: ['three', '@types/three', '@react-three/*']
-      tooling:
-        dependency-type: development
+      npm-minor-patch:
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
     commit-message: { prefix: 'ci' }
+    groups:
+      actions:
+        patterns: ['*']
