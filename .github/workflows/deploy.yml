@@ -25,11 +25,11 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run build
       # No long-lived key: WIF mints a short-lived token through a provider pinned to this repo's main branch.
