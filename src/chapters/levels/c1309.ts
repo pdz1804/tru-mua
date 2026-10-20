@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { TUNING, serveBread, shieldStamp, shouldWarn, truckHit } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
+import { FIT, swapDesigner } from '../engine/designer';
 import {
   clamp,
   damp,
@@ -18,6 +19,7 @@ import {
   lerp,
   makeChar,
   makeExciter,
+  makeItem,
   makePerson,
   makeTruck,
   rnd,
@@ -163,6 +165,7 @@ export class Chapter1309 implements Level {
       const t = makeTruck();
       t.visible = false;
       w.add(t);
+      void swapDesigner(e, t, 'tm-truck', FIT.truck);
       return { g: t, on: false, x: 0, v: 0, warned: false, hit: false };
     });
     this.puddles = [];
@@ -192,6 +195,7 @@ export class Chapter1309 implements Level {
       p.position.set(x, 0.14, 5.6);
       p.rotation.y = Math.PI;
       w.add(p);
+      if (p.userData.umb) void swapDesigner(e, p.userData.umb, 'tm-umbrella-open', { ...FIT.umbrella, rotY: 0 });
       this.people.push({ g: p, x, got: false, station: false, extra: false, guard: false, ...o });
     };
     this.people = [];
@@ -400,6 +404,13 @@ export class Chapter1309 implements Level {
     p.got = true;
     this.s.given++;
     p.g.userData.arm.rotation.x = -2.4;
+    // the loaf they were handed, held up in the raised hand
+    const loaf = makeItem('bm');
+    loaf.scale.setScalar(1.25);
+    loaf.position.set(0.32, 1.55, 0.05);
+    loaf.rotation.z = 0.5;
+    p.g.add(loaf);
+    void swapDesigner(e, loaf, 'tm-banh-mi', { scale: 1.4, center: true, toon: true });
     e.hearts(p.x, 2.3, 5.4, 4);
   }
 
