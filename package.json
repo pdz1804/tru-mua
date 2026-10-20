@@ -23,7 +23,7 @@
     "@react-three/postprocessing": "^2.16.3",
     "@react-three/rapier": "^1.5.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.3.1",
     "three": "^0.170.0",
     "zustand": "^5.0.1"
   },
@@ -33,7 +33,7 @@
     "@eslint/js": "^9.13.0",
     "@playwright/test": "^1.49.0",
     "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react-dom": "^19.3.0",
     "@types/three": "^0.170.0",
     "@vitejs/plugin-react": "^4.3.3",
     "eslint": "^9.13.0",
