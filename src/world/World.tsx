@@ -13,7 +13,8 @@ import { toastBus } from '../lib/toast';
 import { A, Prop } from './Prop';
 import { Rain } from './Rain';
 import { Bouquet, Camera35, Chalkboard, FishTank, Frame, GuppySchool, Lanterns, Necklace } from './Details';
-import { Designer, DesignerEnabled } from './Designer';
+import { Designer } from './Designer';
+import { DesignerEnabled } from './designer-catalog';
 
 /*
  * Layout (metres). The café front wall faces +z at z = 0, door centred at x = 0.
