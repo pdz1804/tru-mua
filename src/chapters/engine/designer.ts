@@ -56,7 +56,9 @@ export interface SwapOptions {
  * How the new models sit in place of the code-built vehicles and umbrella. The code-built ones face -x with their
  * pivot on the ground; the models face +Z, so they are turned a quarter and scaled to the same footprint.
  */
-export const FIT: Record<'umbrella' | 'scooter' | 'truck', SwapOptions> = {
+export const FIT: Record<'umbrella' | 'scooter' | 'truck' | 'exciter', SwapOptions> = {
+  /** the Exciter is 1.89 long with its front on +Z; the code bike (rotated half a turn by the level) faces -x */
+  exciter: { scale: 1.08, rotY: -Math.PI / 2, toon: true },
   /** code canopy: 2.1 wide, shaft bottom at y -0.97, top at y 0.41 */
   umbrella: { scale: [2.05, 1.4, 2.05], offset: [0, -0.97, 0], toon: true },
   /** code scooter: wheels at x +-0.62, about 1.9 long */
@@ -65,8 +67,76 @@ export const FIT: Record<'umbrella' | 'scooter' | 'truck', SwapOptions> = {
   truck: { scale: [1.1, 1.3, 1.46], rotY: -Math.PI / 2, offset: [-0.6, 0, 0], toon: true },
 };
 
+/** The worn raincoats hang from the chibi's neck (body space, the head sits at y 1.5) and are scaled up from the 1.05 m model. */
+export const RAINCOAT_FIT: WearOptions = { scale: 1.5, neck: [0, 1.2, 0] };
+
 /** Sprites and lights are part of the effect, not the code-built mesh, so they stay. */
 const keeps = (o: THREE.Object3D) => (o as THREE.Sprite).isSprite || (o as THREE.Light).isLight || o.userData.keep === true;
+
+export interface WearOptions {
+  /** Uniform scale of the garment, which is modelled for a 1.05 m chibi. */
+  scale?: number;
+  /** Where the garment's neck point sits in the parent's space. */
+  neck?: [number, number, number];
+  /** Translucent garments blend and never write depth, so the rider shows through. */
+  translucent?: boolean;
+  /** Re-hue the garment's coloured parts to this colour; near-white trims (snaps, piping) keep their own. */
+  hue?: THREE.ColorRepresentation;
+  /** Called with the placed garment once it is in the parent. */
+  after?: (garment: THREE.Object3D) => void;
+}
+
+/**
+ * Hang one named node of a designer file on `parent` (the file may hold several garments side by side for its
+ * preview, so the node's own offset is dropped and its origin, the neck point, is placed at `opts.neck`).
+ * Resolves false and leaves `parent` untouched when the file or node is missing or the chapter was torn down.
+ */
+export async function wearDesigner(e: Engine, parent: THREE.Object3D, name: string, node: string, opts: WearOptions = {}): Promise<boolean> {
+  const world = e.world;
+  try {
+    const src = await load(name);
+    if (!e.isCurrent(world)) return false;
+    const found = src.getObjectByName(node);
+    if (!found) throw new Error(`node ${node} not found in ${name}`);
+    const garment = found.clone(true);
+    garment.position.set(...(opts.neck ?? [0, 0, 0]));
+    garment.scale.multiplyScalar(opts.scale ?? 1);
+    garment.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.castShadow = true;
+      m.receiveShadow = false;
+      const mats = (Array.isArray(m.material) ? m.material : [m.material]).map((mat) => {
+        const s = mat as THREE.MeshStandardMaterial;
+        const color = new THREE.Color(s.color ?? 0xffffff);
+        if (opts.hue !== undefined) {
+          // baked colours live in the texture, so tint multiplies it; flat-coloured parts are re-hued instead
+          if (s.map) color.set(opts.hue);
+          else {
+            const from = color.getHSL({ h: 0, s: 0, l: 0 });
+            const to = new THREE.Color(opts.hue).getHSL({ h: 0, s: 0, l: 0 });
+            if (from.s > 0.25) color.setHSL(to.h, Math.max(from.s, to.s), from.l);
+          }
+        }
+        const t = toon(color, { map: s.map, side: THREE.DoubleSide });
+        if (opts.translucent) {
+          t.transparent = true;
+          t.opacity = s.opacity < 1 ? s.opacity : 0.6;
+          t.depthWrite = false;
+        }
+        return t;
+      });
+      m.material = Array.isArray(m.material) ? mats : mats[0];
+      if (opts.translucent) m.renderOrder = 2;
+    });
+    parent.add(garment);
+    opts.after?.(garment);
+    return true;
+  } catch (err) {
+    console.warn(`designer garment ${name}/${node} failed to load, keeping the code-built one`, err);
+    return false;
+  }
+}
 
 /**
  * Replace the code-built meshes in `target` with the designer's model. Resolves false (and leaves `target`
