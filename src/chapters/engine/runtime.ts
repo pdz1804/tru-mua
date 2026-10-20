@@ -10,7 +10,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { TUNING, afterSneeze, scooterHit, shouldWarn, speedFactor, wetStep, type Stamp } from '../tuning';
+import { TUNING, scooterHit, shouldWarn, sneezeRespawnX, speedFactor, wetAfterSneeze, wetStep, type Stamp } from '../tuning';
 import { clampMarker } from './marker-clamp';
 import { FIT, swapDesigner } from './designer';
 import { OUTLINE, SHARED, clamp, damp, heartTex, lerp, makeChar, makeScooter, makeUmbrella, type Look, type Rig, type Vehicle } from './kit';
@@ -40,6 +40,8 @@ export interface Level {
   puddleNear(x: number, laneZ: number): boolean;
   shelter(c: Walker): boolean;
   checkpoint(c: Walker): number | null;
+  /** x of every spot a sneezing couple can be sent back to (centres of the awnings), empty when there is none. */
+  shelterSpots(): readonly number[];
   /** Where the current objective is in the world (the HUD points an arrow at it), or null when there is nothing to point at. */
   target(e: Engine): THREE.Vector3 | null;
   /** A choice button was pressed (25·07's confession). */
@@ -909,12 +911,14 @@ export class Engine {
       const who = W.P.wet >= 100 ? 'Phú' : 'Su';
       W.stats.sneeze++;
       this.toast(who + ' hắt xì! Về mái hiên gần nhất nhé.', 3);
+      const after = wetAfterSneeze({ p: W.P.wet, s: W.S.wet }, W.P.wet >= 100 ? 'p' : 's');
+      const spot = sneezeRespawnX(Math.min(W.P.x, W.S.x), L.shelterSpots(), W.chk);
       [W.P, W.S].forEach((c, k) => {
-        c.x = W.chk + (k ? -0.5 : 0.5);
+        c.x = spot + (k ? -0.5 : 0.5);
         c.z = L.spawnZ;
         c.y = 0.14;
         c.vx = c.vz = c.vy = c.kx = c.kz = 0;
-        c.wet = afterSneeze(c.wet);
+        c.wet = k ? after.s : after.p;
         c.sneeze = 1.2;
       });
       W.hold = false;

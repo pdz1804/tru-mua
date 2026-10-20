@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { ContactShadows, Environment, OrbitControls } from '@react-three/drei';
+import type * as THREE from 'three';
+import { ContactShadows, Environment, Html, OrbitControls } from '@react-three/drei';
 import { useGame, type Who } from './state/store';
 import { Title, Studio, Hud, MemoryCard } from './ui/Overlays';
 import { Chibi } from './world/Chibi';
@@ -15,10 +16,17 @@ const touchDevice = typeof matchMedia !== 'undefined' && matchMedia('(pointer: c
 function StudioScene({ focus }: { focus: Who }) {
   const { su, phu } = useGame();
   const narrow = useThree((st) => st.size.width < 700);
-  const camera = useThree((st) => st.camera);
+  const camera = useThree((st) => st.camera) as THREE.PerspectiveCamera;
+  const { width, height } = useThree((st) => st.size);
   useEffect(() => {
     camera.position.set(0, narrow ? 1.1 : 1.5, narrow ? 6.4 : 4.2);
   }, [camera, narrow]);
+  // on a wide screen the dressing panel covers the right 420 px: slide the picture left so both characters stay in the open part
+  useEffect(() => {
+    if (!narrow) camera.setViewOffset(width, height, Math.min(420, width) / 2, 0, width, height);
+    else camera.clearViewOffset();
+    return () => camera.clearViewOffset();
+  }, [camera, narrow, width, height]);
   return (
     <>
       <color attach="background" args={['#1a1f33']} />
@@ -79,7 +87,15 @@ export default function App() {
         camera={{ position: phase === 'studio' ? [0, 1.5, 4.2] : [0, 3, 12], fov: 45 }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
-        <Suspense fallback={null}>{playing ? <World /> : phase === 'studio' ? <StudioScene focus={tab} /> : <World preview />}</Suspense>
+        <Suspense
+          fallback={
+            <Html center>
+              <div className="loader inline">Đang dựng quán…</div>
+            </Html>
+          }
+        >
+          {playing ? <World /> : phase === 'studio' ? <StudioScene focus={tab} /> : <World preview />}
+        </Suspense>
       </Canvas>
       {phase === 'title' && <Title />}
       {phase === 'studio' && <Studio tab={tab} setTab={setTab} />}

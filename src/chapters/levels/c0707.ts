@@ -241,6 +241,9 @@ export class Chapter0707 implements Level {
   shelter(c: Walker) {
     return (c.z < -1.8 && c.z > -4.5 && this.awn.some((a) => c.x > a[0] && c.x < a[1])) || (c.x > this.goal - 3 && c.x < this.goal + 3 && c.z < -1.6);
   }
+  shelterSpots() {
+    return this.awn.map((a) => (a[0] + a[1]) / 2);
+  }
   checkpoint(c: Walker) {
     const a = this.awn.find((a) => c.x > a[0] && c.x < a[1] && c.z < -1.8);
     return a ? (a[0] + a[1]) / 2 : null;
