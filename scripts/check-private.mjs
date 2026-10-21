@@ -9,7 +9,8 @@ const rules = [
   // Vietnamese mobile numbers; the lookbehind skips decimals like .0773993808 inside libraries
   { name: 'phone number', re: /(?<![.\d\w])0[35789]\d{8}(?!\d)/ },
   // house numbers like 12/34/5; a final 4-digit part is a date (08/09/2023), not an address
-  { name: 'street address', re: /\b\d{2,4}\/\d{1,4}\/\d{1,3}\b/ },
+  // a leading slash means a URL path (jcgt.org/published/0007/04/01 inside three.js), not a house number
+  { name: 'street address', re: /(?<![/\w])\d{2,4}\/\d{1,4}\/\d{1,3}\b/ },
   { name: 'address street name with house number', re: /\d+\s*L[ýy] Th[ưu][ờo]ng Ki[ệe]t/i },
   { name: 'clothing size', re: /\bsize\s*:?\s*3\d\b/i },
   { name: 'banned emoticon', re: /:\){3,}/ },
