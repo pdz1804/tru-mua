@@ -566,7 +566,8 @@ export function makeExciter(): Vehicle {
   return g;
 }
 
-export type Person = THREE.Group & { userData: { arm: THREE.Mesh; umb?: THREE.Group } };
+/** `raise` lifts the arm to hold a loaf up; the designer's model replaces both `arm` and `raise` with its own. */
+export type Person = THREE.Group & { userData: { arm: THREE.Mesh; umb?: THREE.Group; raise: () => void } };
 export function makePerson(coat: number, hasUmb: boolean): Person {
   const g = new THREE.Group() as Person;
   const skin = toon(0xe9c09e);
@@ -586,10 +587,14 @@ export function makePerson(coat: number, hasUmb: boolean): Person {
     const u = makeUmbrella();
     u.scale.setScalar(0.8);
     u.position.set(-0.2, 2.0, 0);
+    u.userData.keep = true; // the umbrella is dressed separately and must survive the person's own model swap
     g.add(u);
     g.userData.umb = u;
   }
   g.userData.arm = arm;
+  g.userData.raise = () => {
+    arm.rotation.x = -2.4;
+  };
   return g;
 }
 
@@ -647,30 +652,51 @@ const SHOPS: [string, string][] = [
   ['CÀ PHÊ', '#ffcf5a'],
 ];
 
-/** One tube house: lit shop front with a neon sign, balconies with plants, AC units, a roof tank. */
+/** What the designer's tube house needs to know about the code-built one it replaces. */
+export interface HouseInfo {
+  x: number;
+  w: number;
+  front: number;
+  H: number;
+  col: number;
+  dim: number;
+  /** the lit (or dark) shop opening, whose material the model's opening copies */
+  shop: THREE.Mesh;
+  /** the neon sign plane, which stays code and moves onto the model's signboard */
+  sign: THREE.Mesh;
+}
+/** Called with the group of code-built pieces of one house once it is built; swaps in the designer's model. */
+export type HouseUpgrade = (g: THREE.Group, info: HouseInfo) => void;
+
+/**
+ * One tube house: lit shop front with a neon sign, balconies with plants, AC units, a roof tank. The body pieces live in
+ * one group so the designer's model can replace them; the sign, glow and reflection streak stay as they are.
+ */
 export function shophouse(
   world: THREE.Object3D,
   x: number,
   w: number,
   front: number,
-  opts: { sign?: [string, string] | null; lit?: boolean; floors?: number; dim?: number } = {},
+  opts: { sign?: [string, string] | null; lit?: boolean; floors?: number; dim?: number; upgrade?: HouseUpgrade } = {},
 ) {
   const floors = opts.floors ?? 2 + Math.floor(rnd() * 3),
     H = floors * 3.1,
     col = PASTEL[Math.floor(rnd() * PASTEL.length)];
   // `dim` < 1 darkens the walls, the balcony slabs and the lit shop windows for a scene whose camera sits close to the row
   const dim = opts.dim ?? 1;
+  const body = new THREE.Group();
+  world.add(body);
   const fac = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, H, 6), std(new THREE.Color(col).multiplyScalar(dim), { roughness: 0.9 }));
   fac.position.set(x + w / 2, H / 2, front - 3);
   fac.receiveShadow = true;
-  world.add(fac);
+  body.add(fac);
   const lit = opts.lit ?? rnd() < 0.7;
   const shopIn = new THREE.Mesh(
     new THREE.PlaneGeometry(w * 0.82, 2.5),
     lit ? glow([0xffd9a0, 0xcfe6ff, 0xffc4dc][Math.floor(rnd() * 3)], 0.62 * dim) : std(0x56606e, { roughness: 0.6, metalness: 0.3 }),
   );
   shopIn.position.set(x + w / 2, 1.35, front + 0.02);
-  world.add(shopIn);
+  body.add(shopIn);
   if (lit) {
     const gl = sprite(0xffc890, 0.13 * dim, w * 1.1);
     gl.position.set(x + w / 2, 1.4, front + 0.6);
@@ -697,10 +723,10 @@ export function shophouse(
     const slab = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.12, 0.9), std(new THREE.Color(0xd6d0c4).multiplyScalar(dim)));
     slab.position.set(x + w / 2, y + 0.05, front + 0.45);
     slab.castShadow = true;
-    world.add(slab);
+    body.add(slab);
     const rail = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.75, 0.04), std(0x2c3340, { transparent: true, opacity: 0.75 }));
     rail.position.set(x + w / 2, y + 0.48, front + 0.88);
-    world.add(rail);
+    body.add(rail);
     for (let k = 0; k < 2; k++) {
       const wl = rnd() < 0.55;
       const win = new THREE.Mesh(
@@ -710,26 +736,27 @@ export function shophouse(
           : std(0x1a2232, { map: winTex(false) }),
       );
       win.position.set(x + w * (0.28 + k * 0.44), y + 1.35, front + 0.02);
-      world.add(win);
+      body.add(win);
     }
     if (rnd() < 0.7)
       for (let k = 0; k < Math.floor(w / 1.3); k++) {
         const p = ol(new THREE.Mesh(new THREE.IcosahedronGeometry(0.24, 0), toon(rnd() < 0.2 ? 0xe86a8a : 0x4f9a63)), 1.05);
         p.position.set(x + 0.6 + k * 1.3, y + 0.95, front + 0.6);
-        world.add(p);
+        body.add(p);
       }
     if (rnd() < 0.45) {
       const ac = ol(new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.5, 0.3), toon(0xe9ecef)));
       ac.position.set(x + w * 0.8, y + 2.4, front + 0.15);
-      world.add(ac);
+      body.add(ac);
     }
   }
   if (rnd() < 0.6) {
     const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.1, 16), std(0xd9dde3, { metalness: 0.9, roughness: 0.3, envMapIntensity: 0.6 }));
     tank.rotation.z = Math.PI / 2;
     tank.position.set(x + w * 0.5, H + 0.5, front - 1.2);
-    world.add(tank);
+    body.add(tank);
   }
+  opts.upgrade?.(body, { x, w, front, H, col, dim, shop: shopIn, sign: sg });
 }
 
 export function streetRow(
@@ -737,7 +764,7 @@ export function streetRow(
   x0: number,
   x1: number,
   front: number,
-  opts: { skip?: [number, number][]; signs?: [number, string, string][]; dim?: number } = {},
+  opts: { skip?: [number, number][]; signs?: [number, string, string][]; dim?: number; upgrade?: HouseUpgrade } = {},
 ) {
   let x = x0;
   const skip = opts.skip ?? [];
@@ -749,24 +776,28 @@ export function streetRow(
       continue;
     }
     const forced = (opts.signs ?? []).find((s) => s[0] >= x && s[0] < x + w);
-    shophouse(world, x, w, front, { sign: forced ? [forced[1], forced[2]] : null, lit: forced ? true : undefined, dim: opts.dim });
+    shophouse(world, x, w, front, { sign: forced ? [forced[1], forced[2]] : null, lit: forced ? true : undefined, dim: opts.dim, upgrade: opts.upgrade });
     x += w;
   }
 }
 
 /** A street lamp; its bulb position joins the pool of real lights the runtime moves around. */
-export function lamp(world: THREE.Object3D, x: number, z: number, lamps: THREE.Vector3[]) {
+export function lamp(world: THREE.Object3D, x: number, z: number, lamps: THREE.Vector3[], upgrade?: (body: THREE.Group) => void) {
+  // the pole, arm and bulb live in one group so the designer's lamp can replace them; the glow, light pool and point light stay
+  const body = new THREE.Group();
+  world.add(body);
   const pm = std(0x3a4150, { metalness: 0.6, roughness: 0.4 });
   const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 4.6, 8), pm);
   p.position.set(x, 2.3, z);
   p.castShadow = true;
-  world.add(p);
+  body.add(p);
   const arm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 1.3), pm);
   arm.position.set(x, 4.55, z + 0.6);
-  world.add(arm);
+  body.add(arm);
   const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.36), glow(0xffd29a, 4));
   bulb.position.set(x, 4.38, z + 1.2);
-  world.add(bulb);
+  body.add(bulb);
+  upgrade?.(body);
   const g = sprite(0xffb36b, 0.85, 2.6);
   g.position.set(x, 4.3, z + 1.2);
   world.add(g);

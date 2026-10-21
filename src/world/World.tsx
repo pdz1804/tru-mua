@@ -221,9 +221,22 @@ function Street() {
         collide
         fallback={<Prop src="street-kenney/detail-bench.glb" height={0.9} position={[-5.6, 0.12, 2.6]} rotation={Math.PI} collide />}
       />
-      <Prop src="furniture-kenney/pottedPlant.glb" height={1.3} position={[-1.6, 0.12, 0.7]} collide />
-      <Prop src="furniture-kenney/pottedPlant.glb" height={1.3} position={[1.6, 0.12, 0.7]} collide />
-      <Prop src="furniture-kenney/rugDoormat.glb" width={1.4} position={[0, 0.13, 0.9]} />
+      {[-1.6, 1.6].map((x) => (
+        <Designer
+          key={x}
+          file="room-floor-cactus"
+          fit={{ size: [0.42, 1.3, 0.48], keepShape: true }}
+          position={[x, 0.12, 0.7]}
+          collide
+          fallback={<Prop src="furniture-kenney/pottedPlant.glb" height={1.3} position={[x, 0.12, 0.7]} collide />}
+        />
+      ))}
+      <Designer
+        file="hall-runner-rug"
+        fit={{ size: [1.4, 0.033, 0.77] }}
+        position={[0, 0.13, 0.9]}
+        fallback={<Prop src="furniture-kenney/rugDoormat.glb" width={1.4} position={[0, 0.13, 0.9]} />}
+      />
       {/* invisible street bounds: no fences, the couple just slows to a stop at the edges */}
       <CuboidCollider args={[15, 3, 0.2]} position={[0, 1.5, 13.5]} />
       <CuboidCollider args={[0.2, 3, 7]} position={[-ROOM.x - 2.4, 1.5, 7]} />
@@ -369,8 +382,21 @@ function Interior() {
           />
         </group>
       ))}
-      <Prop src="furniture-kaykit/rug_rectangle_stripes_A.gltf" width={3.2} position={[-4.8, 0.03, -5.1]} rotation={Math.PI / 2} shadows={false} />
-      <Prop src="furniture-kaykit/rug_oval_A.gltf" width={2.6} position={[0.6, 0.03, -6.6]} shadows={false} />
+      <Designer
+        file="room-striped-rug"
+        fit={{ size: [3.2, 0.107, 2.133] }}
+        position={[-4.8, 0.03, -5.1]}
+        rotation={Math.PI / 2}
+        shadows={false}
+        fallback={<Prop src="furniture-kaykit/rug_rectangle_stripes_A.gltf" width={3.2} position={[-4.8, 0.03, -5.1]} rotation={Math.PI / 2} shadows={false} />}
+      />
+      <Designer
+        file="room-oval-rug"
+        fit={{ size: [2.6, 0.087, 1.733] }}
+        position={[0.6, 0.03, -6.6]}
+        shadows={false}
+        fallback={<Prop src="furniture-kaykit/rug_oval_A.gltf" width={2.6} position={[0.6, 0.03, -6.6]} shadows={false} />}
+      />
       <Prop src="furniture-kenney/coatRack.glb" height={1.8} position={[-2.3, 0.02, -0.7]} collide />
       {/* just inside the door: umbrella stand on the right, a lantern-glow sconce on each side wall */}
       <Designer file="scene-umbrella-stand" scale={1.3} position={[1.45, 0.02, -0.5]} collide />
@@ -386,8 +412,21 @@ function Interior() {
       ).map(([x, z, r]) => (
         <Designer key={`${x}${z}`} file="scene-wall-sconce" scale={1.4} shadows={false} position={[x, 2.3, z]} rotation={r} />
       ))}
-      <Prop src="furniture-kaykit/lamp_standing.gltf" height={1.8} position={[-6.4, 0.02, -2.9]} collide />
-      <Prop src="furniture-kaykit/lamp_standing.gltf" height={1.8} position={[6.4, 0.02, -10.6]} collide />
+      {(
+        [
+          [-6.4, -2.9],
+          [6.4, -10.6],
+        ] as const
+      ).map(([x, z]) => (
+        <Designer
+          key={`${x}${z}`}
+          file="room-standing-lamp"
+          fit={{ size: [0.714, 1.8, 0.714], keepShape: true }}
+          position={[x, 0.02, z]}
+          collide
+          fallback={<Prop src="furniture-kaykit/lamp_standing.gltf" height={1.8} position={[x, 0.02, z]} collide />}
+        />
+      ))}
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.4} position={[-6.4, 0.02, -11.3]} collide />
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.4} position={[6.4, 0.02, -1.2]} collide />
       <Prop src="furniture-kenney/ceilingFan.glb" width={1.4} position={[0, ROOM.h - 0.55, -4.2]} shadows={false} />
@@ -454,7 +493,7 @@ const SPOTS: Spot[] = [
           fallback={<Prop src="furniture-kaykit/cactus_small_A.gltf" height={0.34} position={[0, WIN.y0, 0.1]} />}
         />
         {/* the wool bought that day */}
-        <Designer file="keepsake-yarn-basket" scale={1.3} position={[0.45, WIN.y0, 0.1]} />
+        <Designer file="keepsake-yarn-basket" fit={{ size: [0.33, 0.374, 0.33], keepShape: 'height' }} position={[0.45, WIN.y0, 0.1]} />
       </>
     ),
   },
@@ -470,7 +509,7 @@ const SPOTS: Spot[] = [
           fallback={<Prop src="street-misc/present.glb" height={0.26} tint="#5fa8e8" position={[-0.15, WIN.y0, 0.1]} />}
         />
         {/* the blue box with a ribbon it came in */}
-        <Designer file="keepsake-blue-gift-box" scale={1} position={[0.3, WIN.y0, 0.1]} />
+        <Designer file="keepsake-blue-gift-box" fit={{ size: [0.29, 0.35, 0.29], keepShape: 'height' }} position={[0.3, WIN.y0, 0.1]} />
       </>
     ),
   },
@@ -547,7 +586,13 @@ const SPOTS: Spot[] = [
     at: [-4.7, -5.1],
     node: (
       <>
-        <Prop src="furniture-kaykit/table_low.gltf" height={0.42} width={1.3} rotation={Math.PI / 2} collide />
+        <Designer
+          file="held-coffee-table"
+          fit={{ size: [2.016, 0.42, 1.26] }}
+          rotation={Math.PI / 2}
+          collide
+          fallback={<Prop src="furniture-kaykit/table_low.gltf" height={0.42} width={1.3} rotation={Math.PI / 2} collide />}
+        />
         <Designer
           file="keepsake-photobooth-album"
           scale={2}
@@ -584,9 +629,9 @@ const SPOTS: Spot[] = [
     node: (
       <>
         {/* the giant flower itself, standing on the floor under its photo (the group sits 1.4 m up the wall) */}
-        <Designer file="scene-sala-flower" scale={0.5} position={[0.95, -1.38, 0]} />
+        <Designer file="scene-sala-flower" fit={{ size: [0.74, 1.034, 0.75], keepShape: 'height' }} position={[0.95, -1.38, 0]} />
         {/* the teddy that was hunted on sale that day, sitting at its foot */}
-        <Designer file="keepsake-sale-bear" scale={1.8} position={[0.6, -1.38, 0.4]} rotation={Math.PI / 2 - 0.6} />
+        <Designer file="keepsake-sale-bear" fit={{ size: [0.19, 0.27, 0.17], keepShape: 'height' }} position={[0.6, -1.38, 0.4]} rotation={Math.PI / 2 - 0.6} />
         <Frame
           position={[0, 0, 0]}
           rotation={Math.PI / 2}
@@ -639,7 +684,7 @@ const SPOTS: Spot[] = [
         <Prop src="furniture-kenney/sideTableDrawers.glb" height={0.7} rotation={Math.PI / 2} collide />
         <Designer
           file="keepsake-radio"
-          scale={1.3}
+          fit={{ size: [0.39, 0.274, 0.17], keepShape: 'height' }}
           position={[0, 0.7, 0]}
           rotation={Math.PI / 2}
           fallback={<Prop src="furniture-kenney/radio.glb" height={0.22} position={[0, 0.7, 0]} rotation={Math.PI / 2} />}
@@ -656,7 +701,7 @@ const SPOTS: Spot[] = [
         <Prop src="food-kenney/plate.glb" width={0.46} position={[0, 0.78, 0]} />
         <Designer
           file="keepsake-fried-chicken-plush"
-          scale={1.5}
+          fit={{ size: [0.375, 0.194, 0.195], keepShape: 'height' }}
           position={[0, 0.8, 0]}
           rotation={0.5}
           fallback={<Prop src="food-kenney/donut.glb" width={0.12} position={[0, 0.8, 0]} tint="#d98a3a" />}
@@ -725,10 +770,17 @@ const SPOTS: Spot[] = [
     at: [6.0, -4.4],
     node: (
       <>
-        <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
+        {/* the three desks overlap by 0.8 m; the later ones sit a few millimetres higher so their tops never z-fight */}
+        <Designer
+          file="room-writing-desk"
+          fit={{ size: [2.4, 0.8, 1.6], turn: Math.PI / 2 }}
+          rotation={Math.PI / 2}
+          collide
+          fallback={<Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />}
+        />
         <Designer
           file="keepsake-white-lily"
-          scale={1.8}
+          fit={{ size: [0.46, 0.72, 0.32], keepShape: 'height' }}
           position={[0, 0.8, 0]}
           fallback={
             <>
@@ -745,7 +797,14 @@ const SPOTS: Spot[] = [
     at: [6.0, -6.0],
     node: (
       <>
-        <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
+        <Designer
+          file="room-writing-desk"
+          fit={{ size: [2.4, 0.8, 1.6], turn: Math.PI / 2 }}
+          position={[0, 0.004, 0]}
+          rotation={Math.PI / 2}
+          collide
+          fallback={<Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />}
+        />
         <Designer
           file="keepsake-ten-oclock-flower"
           scale={2.4}
@@ -755,7 +814,7 @@ const SPOTS: Spot[] = [
         {/* the florist's flower cart (her dream) takes the place of the code-built bouquet and jar */}
         <Designer
           file="keepsake-flower-shop"
-          scale={0.8}
+          fit={{ size: [0.48, 0.48, 0.24], keepShape: 'height' }}
           position={[0, 0.8, 0.22]}
           rotation={-Math.PI / 2}
           fallback={
@@ -773,12 +832,19 @@ const SPOTS: Spot[] = [
     at: [6.0, -7.6],
     node: (
       <>
-        <Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />
+        <Designer
+          file="room-writing-desk"
+          fit={{ size: [2.4, 0.8, 1.6], turn: Math.PI / 2 }}
+          position={[0, 0.008, 0]}
+          rotation={Math.PI / 2}
+          collide
+          fallback={<Prop src="furniture-kaykit/table_medium_long.gltf" height={0.8} width={1.0} rotation={Math.PI / 2} collide />}
+        />
         {/* the MC certificate she collected that day, framed on the wall behind the roses */}
         <Designer file="keepsake-mc-certificate" scale={2} position={[0.95, 1.5, 0]} rotation={-Math.PI / 2} shadows={false} />
         <Designer
           file="keepsake-ecuador-roses"
-          scale={1.5}
+          fit={{ size: [0.33, 0.675, 0.33], keepShape: 'height' }}
           position={[0, 0.8, 0]}
           fallback={
             <>
@@ -827,7 +893,12 @@ const SPOTS: Spot[] = [
     at: [2.4, -11.4],
     node: (
       <>
-        <Prop src="furniture-kaykit/cabinet_small.gltf" height={0.9} collide />
+        <Designer
+          file="room-nightstand"
+          fit={{ size: [0.9, 0.9, 0.902] }}
+          collide
+          fallback={<Prop src="furniture-kaykit/cabinet_small.gltf" height={0.9} collide />}
+        />
         <Designer
           file="keepsake-rice-paper-jar"
           scale={2.4}
@@ -844,12 +915,17 @@ const SPOTS: Spot[] = [
     at: [0.2, -11.4],
     node: (
       <>
-        <Prop src="furniture-kaykit/cabinet_medium.gltf" height={0.9} width={1.2} collide />
+        <Designer
+          file="room-dresser-cabinet"
+          fit={{ size: [1.8, 0.9, 0.902], turn: Math.PI / 2 }}
+          collide
+          fallback={<Prop src="furniture-kaykit/cabinet_medium.gltf" height={0.9} width={1.2} collide />}
+        />
         {/* the designer's tank has an opaque water mesh (top face at 0.237 m before scaling), so the animated guppies swim just above it */}
         <Designer file="keepsake-guppy-tank" scale={1.7} position={[-0.18, 0.9, 0]} fallback={<FishTank position={[0, 0.9, 0]} />}>
           <GuppySchool position={[0, 0.237 * 1.7, 0]} halfX={0.28} halfZ={0.1} />
         </Designer>
-        <Designer file="keepsake-blue-hydrangea" scale={1.3} position={[0.42, 0.9, 0.02]} />
+        <Designer file="keepsake-blue-hydrangea" fit={{ size: [0.31, 0.39, 0.31], keepShape: 'height' }} position={[0.42, 0.9, 0.02]} />
         <pointLight position={[-0.18, 1.35, 0.3]} color="#8fd0ff" intensity={1.2} distance={2.2} />
       </>
     ),
@@ -865,7 +941,7 @@ const SPOTS: Spot[] = [
         <Designer file="tm-long-letter" scale={1.8} position={[-0.38, 2.05, 0.02]} rotation={0.35} />
         <Designer
           file="keepsake-pajama-bear"
-          scale={1.5}
+          fit={{ size: [0.27, 0.42, 0.26], keepShape: 'height' }}
           position={[0, 2.05, 0.02]}
           fallback={<Prop src="furniture-kenney/bear.glb" height={0.32} tint="#8a5a3a" position={[0, 2.05, 0.05]} />}
         />

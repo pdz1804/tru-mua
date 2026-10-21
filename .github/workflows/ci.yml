@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run format:check
@@ -31,6 +31,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run check:private
+      - run: npm run check:models
       # build also runs the private-data scan against the shipped bundle
       - run: npm run build
       - name: Bundle report
@@ -54,9 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
@@ -66,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       # the pinned CLI over the full history; no third-party action or token needed
       - name: gitleaks
@@ -85,19 +86,19 @@ jobs:
       matrix:
         project: [desktop, mobile]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=${{ matrix.project }}
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.project }}
           path: |

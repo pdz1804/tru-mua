@@ -11,7 +11,8 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OUTLINE, SHARED, toon } from './kit';
+import { OUTLINE, SHARED, glow, toon } from './kit';
+import type { HouseInfo, Person } from './kit';
 import type { Engine } from './runtime';
 
 const base = import.meta.env.BASE_URL;
@@ -48,6 +49,11 @@ export interface SwapOptions {
   center?: boolean;
   /** Re-skin with the chapters' toon material (keeps colour and texture) instead of the model's own PBR material. */
   toon?: boolean;
+  /**
+   * Choose the material for one of the model's materials (matched by its glTF name, e.g. an emissive lens or a
+   * tintable wall) before the toon skin is applied. Return undefined to take the default for that material.
+   */
+  material?: (mat: THREE.Material) => THREE.Material | undefined;
   /** Called with the placed model once it is in the group. */
   after?: (model: THREE.Object3D) => void;
 }
@@ -153,6 +159,8 @@ export async function swapDesigner(e: Engine, target: THREE.Object3D, name: stri
       if (!m.isMesh) return;
       m.castShadow = m.receiveShadow = true;
       const mats = (Array.isArray(m.material) ? m.material : [m.material]).map((mat) => {
+        const own = opts.material?.(mat);
+        if (own) return own;
         if (!opts.toon) return mat.clone();
         const s = mat as THREE.MeshStandardMaterial;
         return toon(s.color ?? 0xffffff, { map: s.map, side: s.side });
@@ -185,4 +193,76 @@ export async function swapDesigner(e: Engine, target: THREE.Object3D, name: stri
     console.warn(`designer model ${name} failed to load, keeping the code-built prop`, err);
     return false;
   }
+}
+
+/* ===================== street pieces ===================== */
+/** A `material` hook that replaces only the model material with this glTF name. */
+export const byName = (name: string, make: (mat: THREE.Material) => THREE.Material) => (mat: THREE.Material) => (mat.name === name ? make(mat) : undefined);
+
+/** The tube house model: 4.2 wide, 9.3 tall (three floors), wall face 0.5 in front of its back edge, signboard at y 2.93 to 3.47. */
+const HOUSE = { w: 4.2, h: 9.3, wallFront: 0.5, boardTop: 3.47, boardBottom: 2.93, boardFront: 0.675, boardW: 3.56 };
+
+/**
+ * Swap one code-built tube house for the designer's: stretched to the house's width, its height kept within a
+ * floor of the code-built one, the wall tinted with the house's colour, the shop opening lit or dark as in code. The
+ * neon sign texture (code) is moved onto the model's blank signboard.
+ */
+export function designerHouse(e: Engine, g: THREE.Group, h: HouseInfo) {
+  const sx = (h.w - 0.08) / HOUSE.w;
+  const sy = THREE.MathUtils.clamp(h.H / HOUSE.h, 0.8, 1.25);
+  const wall = new THREE.Color(h.col).multiplyScalar(h.dim);
+  void swapDesigner(e, g, 'trumua-tube-house', {
+    scale: [sx, sy, 1],
+    offset: [h.x + h.w / 2, 0, h.front - HOUSE.wallFront],
+    toon: true,
+    material: (mat) => {
+      switch (mat.name) {
+        case 'tube_house_wall':
+          return toon(wall);
+        case 'tube_house_shop_interior':
+          return h.shop.material instanceof THREE.Material ? h.shop.material.clone() : undefined;
+        default: {
+          const s = mat as THREE.MeshStandardMaterial;
+          return toon(new THREE.Color(s.color ?? 0xffffff).multiplyScalar(h.dim), { map: s.map });
+        }
+      }
+    },
+    after: () => {
+      const boardH = (HOUSE.boardTop - HOUSE.boardBottom) * sy;
+      const boardW = HOUSE.boardW * sx;
+      const plane = h.sign.geometry as THREE.PlaneGeometry;
+      // the sign keeps its aspect and sits centred on the board, just proud of it
+      const k = Math.min((boardW * 0.92) / plane.parameters.width, (boardH * 0.9) / plane.parameters.height);
+      h.sign.scale.set(k, k, 1);
+      h.sign.position.set(h.x + h.w / 2, ((HOUSE.boardTop + HOUSE.boardBottom) / 2) * sy, h.front - HOUSE.wallFront + HOUSE.boardFront + 0.012);
+    },
+  });
+}
+
+/** The street lamp model: pole axis at the origin, arm toward +Z, lens underside at y 3.97, z 1.1; scaled up to the code lamp's 4.6 m pole. */
+export function designerLamp(e: Engine, g: THREE.Group, x: number, z: number) {
+  void swapDesigner(e, g, 'trumua-street-lamp', {
+    scale: 1.07,
+    offset: [x, 0, z],
+    toon: true,
+    material: byName('street_lamp_lens', () => glow(0xffd29a, 4)),
+  });
+}
+
+/**
+ * The bystander model replaces the code-built waiting person. Its raised arm is on the -X side, the code arm on +X, so
+ * the model is mirrored; the `arm` node (pivot at the shoulder) takes over `userData.arm` and `userData.raise`.
+ */
+export function designerPerson(e: Engine, p: Person, coat: number) {
+  void swapDesigner(e, p, 'trumua-bystander', {
+    scale: [-1.1, 1.1, 1.1],
+    toon: true,
+    material: byName('bystander_coat', () => toon(coat)),
+    after: (model) => {
+      const arm = model.getObjectByName('arm');
+      if (!arm) return;
+      p.userData.arm = arm as THREE.Mesh;
+      p.userData.raise = () => arm.rotation.set(0, 0, 0.5);
+    },
+  });
 }

@@ -16,6 +16,14 @@ scene-hall-bench, scene-paper-lantern, scene-sala-flower, scene-umbrella-stand, 
 keepsake-blue-gift-box, keepsake-yarn-basket, keepsake-mask-toy, keepsake-sale-bear, keepsake-mc-certificate,
 keepsake-mc-mic, keepsake-flower-shop.
 
+Room furniture reused from the sister app, unchanged (they come at an arbitrary size with a centred pivot, so the café
+fits each one to the box of the piece it replaces with the `fit` prop of `Designer`): room-standing-lamp, room-oval-rug,
+room-striped-rug, room-nightstand, room-dresser-cabinet, room-writing-desk, hall-runner-rug, held-coffee-table,
+room-floor-cactus.
+
 Built for this app (same pipeline, also original work): tm-umbrella-open, tm-banh-mi, tm-banh-mi-bag, tm-scooter, tm-truck,
 tm-chicken-bucket, tm-movie-ticket-pair, tm-long-letter, tm-menu-card, tm-firefly-necklace, tm-baby-photo-frame,
 tm-bouquet-wrapped, tm-chalkboard, tm-red-stool, tm-exciter, tm-raincoat-worn.
+
+Street set for the rain chapters (also built for this app, same pipeline, original work): trumua-tube-house, trumua-street-lamp,
+trumua-street-tree, trumua-bystander, trumua-banh-trang-stall, trumua-wooden-crate, trumua-gas-canopy, trumua-promenade-railing.

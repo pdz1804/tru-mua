@@ -13,8 +13,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "check:models": "node .github/scripts/check-models.mjs public/models/designer models-report.json",
     "check:private": "node scripts/check-private.mjs src public e2e",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:private && npm run build",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run check:private && npm run check:models && npm run build",
     "prepare": "husky"
   },
   "dependencies": {
