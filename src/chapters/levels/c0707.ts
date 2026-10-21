@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { TUNING, thunderMul } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
-import { swapDesigner } from '../engine/designer';
+import { byName, designerHouse, designerLamp, swapDesigner } from '../engine/designer';
 import { awning, clamp, damp, glow, lamp, lerp, makeItem, ol, setSeed, sprite, std, streetRow, tiled, tiles, asphalt, toon, wires } from '../engine/kit';
 
 const FRONT = -4.4;
@@ -87,6 +87,7 @@ export class Chapter0707 implements Level {
     w.add(curb);
     streetRow(w, -30, len + 30, FRONT, {
       dim: 0.5,
+      upgrade: (g, info) => designerHouse(e, g, info),
       skip: [this.alley],
       signs: [
         [12, 'TẠP HÓA', '#62d6ff'],
@@ -115,10 +116,15 @@ export class Chapter0707 implements Level {
     w.add(ab);
     e.lamps.push(new THREE.Vector3(55.75, 2.6, -9.5));
     this.crates.forEach(([xa, xb, za, zb, h]) => {
+      // one group per crate, standing on the pavement, so the designer's crate can replace the box and be stretched to the same footprint
+      const crate = new THREE.Group();
+      crate.position.set((xa + xb) / 2, 0.14, (za + zb) / 2);
       const c = ol(new THREE.Mesh(new THREE.BoxGeometry(xb - xa, h, zb - za), toon(0xa07a45)), 1.02);
-      c.position.set((xa + xb) / 2, 0.14 + h / 2, (za + zb) / 2);
+      c.position.y = h / 2;
       c.castShadow = c.receiveShadow = true;
-      w.add(c);
+      crate.add(c);
+      w.add(crate);
+      void swapDesigner(e, crate, 'trumua-wooden-crate', { scale: [(xb - xa) / 0.6, h / 0.4, (zb - za) / 0.5], toon: true });
     });
     this.puddles.forEach(([x, z, r]) => {
       const p = new THREE.Mesh(
@@ -130,21 +136,26 @@ export class Chapter0707 implements Level {
       p.position.set(x, z < -0.45 ? 0.145 : 0.012, z);
       w.add(p);
     });
-    [6, 20, 34, 48, 62, 76].forEach((x) => lamp(w, x, -3.9, e.lamps));
+    [6, 20, 34, 48, 62, 76].forEach((x) => lamp(w, x, -3.9, e.lamps, (g) => designerLamp(e, g, x, -3.9)));
     wires(
       w,
       e.lamps.filter((l) => l.z < 0 && l.y > 4),
     );
     // the bánh tráng stall with two red plastic stools: the goal
     const gx = this.goal;
+    // the stall box and its six snack bags stand in group `stall` until the designer's stall (counter, bag rail, jar) arrives
+    const stall = new THREE.Group();
+    stall.position.set(gx - 0.6, 0, -3.4);
+    w.add(stall);
     const st = ol(new THREE.Mesh(new THREE.BoxGeometry(2, 0.9, 0.8), toon(0x7a5a3a)));
-    st.position.set(gx - 0.6, 0.6, -3.4);
-    w.add(st);
+    st.position.y = 0.6;
+    stall.add(st);
     for (let k = 0; k < 6; k++) {
       const bag = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.1), toon(0xf6d58a));
-      bag.position.set(gx - 1.4 + k * 0.3, 1.17, -3.4);
-      w.add(bag);
+      bag.position.set(-0.8 + k * 0.3, 1.17, 0);
+      stall.add(bag);
     }
+    void swapDesigner(e, stall, 'trumua-banh-trang-stall', { offset: [0, 0.14, 0], toon: true, material: byName('stall_jar_glass', (m) => m.clone()) });
     this.stools = [
       [gx - 0.9, -2.4],
       [gx + 0.1, -2.4],
