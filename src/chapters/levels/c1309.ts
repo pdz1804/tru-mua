@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { TUNING, serveBread, shieldStamp, shouldWarn, truckHit } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
-import { FIT, RAINCOAT_FIT, swapDesigner, wearDesigner } from '../engine/designer';
+import { FIT, RAINCOAT_FIT, byName, designerHouse, designerLamp, designerPerson, swapDesigner, wearDesigner } from '../engine/designer';
 import {
   clamp,
   damp,
@@ -30,6 +30,7 @@ import {
   tiled,
   tiles,
   asphalt,
+  type HouseUpgrade,
   type Person,
   type Rig,
   type Vehicle,
@@ -123,13 +124,14 @@ export class Chapter1309 implements Level {
     // tube houses on both sides
     const rowR = new THREE.Group();
     w.add(rowR);
-    streetRow(rowR, -40, len + 40, -7.4);
+    const house: HouseUpgrade = (g, info) => designerHouse(e, g, info);
+    streetRow(rowR, -40, len + 40, -7.4, { upgrade: house });
     const rowL = new THREE.Group();
     w.add(rowL);
-    streetRow(rowL, -40, len + 40, -7.4);
+    streetRow(rowL, -40, len + 40, -7.4, { upgrade: house });
     rowL.rotation.y = Math.PI;
     rowL.position.set(len, 0, 0);
-    for (let x = 10; x < len; x += 22) lamp(w, x, -6.4, e.lamps);
+    for (let x = 10; x < len; x += 22) lamp(w, x, -6.4, e.lamps, (g) => designerLamp(e, g, x, -6.4));
     // the Exciter with both riders in raincoats
     this.bike = new THREE.Group();
     w.add(this.bike);
@@ -214,6 +216,7 @@ export class Chapter1309 implements Level {
       p.rotation.y = Math.PI;
       w.add(p);
       if (p.userData.umb) void swapDesigner(e, p.userData.umb, 'tm-umbrella-open', { ...FIT.umbrella, rotY: 0 });
+      designerPerson(e, p, coats[this.people.length % coats.length]);
       this.people.push({ g: p, x, got: false, station: false, extra: false, guard: false, ...o });
     };
     this.people = [];
@@ -235,6 +238,13 @@ export class Chapter1309 implements Level {
     const under = new THREE.PointLight(0xffffff, 12, 12, 1.5);
     under.position.set(0, 3.8, -1);
     gs.add(under);
+    // the designer's canopy (roof, glowing red band, striped pillars) replaces the roof and band; the light under it stays
+    // the pale underside sits close to that light and washes out the signs below, so the light eases off once the model is in
+    void swapDesigner(e, gs, 'trumua-gas-canopy', {
+      toon: true,
+      material: byName('canopy_red_band', () => glow(0xd8342c, 1.3)),
+      after: () => (under.intensity = 6),
+    });
     sign('GÀ RÁN', this.people[this.people.length - 1].x + 2);
     Object.assign(this, { stage: 'prologue', stageT: 0, nextTruck: 6, stationDone: false, snapped: false, hearted: false });
     this.s = { x: 0, z: 1.3, vz: 0, speed: 0, wet: 0, shield: 0, bread: TUNING.breadFirst, given: 0, faceSplashes: 0, shielded: 0, missed: 0, lean: 0 };
@@ -424,9 +434,10 @@ export class Chapter1309 implements Level {
   private give(e: Engine, p: Waiting) {
     p.got = true;
     this.s.given++;
-    p.g.userData.arm.rotation.x = -2.4;
+    p.g.userData.raise();
     // the loaf they were handed, held up in the raised hand
     const loaf = makeItem('bm');
+    loaf.userData.keep = true;
     loaf.scale.setScalar(1.25);
     loaf.position.set(0.32, 1.55, 0.05);
     loaf.rotation.z = 0.5;

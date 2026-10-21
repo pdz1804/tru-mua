@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { TUNING } from '../tuning';
 import { SKY, type Engine, type Level, type Walker } from '../engine/runtime';
 import { CHAPTER_META } from '../catalog';
-import { FIT, swapDesigner } from '../engine/designer';
+import { FIT, designerLamp, swapDesigner } from '../engine/designer';
 import {
   awning,
   clamp,
@@ -95,14 +95,19 @@ export class Chapter2507 implements Level {
     this.river.position.set(len / 2, -0.6, 33);
     w.add(this.river);
     const railM = std(0x30394a, { metalness: 0.7, roughness: 0.3 });
+    // the riverside railing in 2.2 m tiles (post at each tile start, rail across), so the designer's railing,
+    // which tiles at exactly that pitch with half a post at each end, replaces each tile in turn
     for (let x = -30; x < len + 30; x += 2.2) {
+      const tile = new THREE.Group();
+      tile.position.set(x + 1.1, 0, 3);
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 6), railM);
-      p.position.set(x, 0.6, 3);
-      w.add(p);
+      p.position.set(-1.1, 0.6, 0);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 0.08), railM);
+      bar.position.set(0, 1.1, 0);
+      tile.add(p, bar);
+      w.add(tile);
+      void swapDesigner(e, tile, 'trumua-promenade-railing', { offset: [0, 0.1, 0], toon: true });
     }
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(len + 60, 0.08, 0.08), railM);
-    rail.position.set(len / 2, 1.1, 3);
-    w.add(rail);
     // far bank skyline, its lights streaking on the water
     for (let k = 0; k < 22; k++) {
       const h = 6 + rnd() * 22,
@@ -153,8 +158,10 @@ export class Chapter2507 implements Level {
       const t = makeTree();
       t.position.set(x + rnd() * 2, 0.14, -5.4);
       w.add(t);
+      // the designer's tree (turned a different way each time, without drawing from the level's random sequence)
+      void swapDesigner(e, t, 'trumua-street-tree', { scale: 1.1, rotY: x * 2.4, toon: true });
     }
-    [8, 22, 36, 50, 64].forEach((x) => lamp(w, x, 1.5, e.lamps));
+    [8, 22, 36, 50, 64].forEach((x) => lamp(w, x, 1.5, e.lamps, (g) => designerLamp(e, g, x, 1.5)));
     // the giant flower installation (first photo), petals around a glowing core
     const fl = new THREE.Group();
     fl.position.set(16, 0.14, -2.9);
