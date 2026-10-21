@@ -526,7 +526,8 @@ kbd {
 }
 .chapter-stage .wetfx {
   transition: opacity 0.9s;
-  background: radial-gradient(circle at 20% 30%, rgba(180, 215, 255, 0.35) 0 3%, transparent 4%),
+  background:
+    radial-gradient(circle at 20% 30%, rgba(180, 215, 255, 0.35) 0 3%, transparent 4%),
     radial-gradient(circle at 70% 60%, rgba(180, 215, 255, 0.3) 0 4%, transparent 5%),
     radial-gradient(circle at 45% 80%, rgba(180, 215, 255, 0.28) 0 2.5%, transparent 3.5%),
     radial-gradient(circle at 85% 20%, rgba(180, 215, 255, 0.32) 0 3%, transparent 4%), linear-gradient(rgba(150, 190, 240, 0.18), rgba(150, 190, 240, 0.08));
