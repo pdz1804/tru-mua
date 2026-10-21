@@ -31,6 +31,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run check:private
+      - run: npm run check:models
       # build also runs the private-data scan against the shipped bundle
       - run: npm run build
       - name: Bundle report

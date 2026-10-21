@@ -178,7 +178,7 @@ export class Chapter2507 implements Level {
     fl.add(stem);
     // the designer's flower replaces the code-built petals and core; toon-skinned (the PBR bloom blew out to white under
     // the pink light), and the glow sprite moves up behind the bloom
-    void swapDesigner(e, fl, 'scene-sala-flower', { scale: 1.3, toon: true, after: () => (cg.position.y = 2.9) });
+    void swapDesigner(e, fl, 'scene-sala-flower', { scale: 2.75, toon: true, after: () => (cg.position.y = 2.9) });
     const fpl = new THREE.PointLight(0xff9fc8, 10, 10, 1.6);
     fpl.position.set(16, 2.6, -1.3);
     w.add(fpl);

@@ -59,6 +59,16 @@ export const DESIGNER_FILES = [
   'tm-chalkboard',
   'tm-exciter',
   'tm-raincoat-worn',
+  // sister-app room furniture: unit-sized models with a centred pivot, so they are placed with `fit` (see Designer)
+  'room-standing-lamp',
+  'room-oval-rug',
+  'room-striped-rug',
+  'room-nightstand',
+  'room-dresser-cabinet',
+  'room-writing-desk',
+  'hall-runner-rug',
+  'held-coffee-table',
+  'room-floor-cactus',
 ] as const;
 export type DesignerFile = (typeof DESIGNER_FILES)[number];
 

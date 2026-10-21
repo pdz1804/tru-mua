@@ -48,6 +48,15 @@ interface DesignerProps {
   scale?: number | [number, number, number];
   /** The door set is one mesh (frame and leaf together): `leaf` keeps only the swinging leaf, `frame` only the fixed frame. */
   part?: 'leaf' | 'frame';
+  /**
+   * For the sister app's room furniture, which comes at an arbitrary size with a centred pivot: fit the model into the
+   * box (metres, x/y/z) of the piece it replaces and stand it on the floor at the placement point. By default it is
+   * stretched to the box (tables and cabinets keep the surface height keepsakes rest on); `keepShape` scales it
+   * uniformly to fit inside the box (`'height'`: to the box's height only, for models whose proportions differ from
+   * the piece they replace). `turn` spins the model about Y first (to put its long side along x). A flat box
+   * (a rug) gets the model's thinnest side turned up.
+   */
+  fit?: { size: [number, number, number]; keepShape?: boolean | 'height'; turn?: number };
   shadows?: boolean;
   collide?: boolean;
   /** The code-built prop shown until the model arrives, and kept if it never does. */
@@ -57,7 +66,7 @@ interface DesignerProps {
 }
 
 /** Placed by the model's own pivot (bottom-centre, back-centre for wall pieces, the hanging point for lanterns, the hinge edge for the door). */
-function Model({ file, position = [0, 0, 0], rotation = 0, scale = 1, part, shadows = true, collide = false, children }: DesignerProps) {
+function Model({ file, position = [0, 0, 0], rotation = 0, scale = 1, part, fit, shadows = true, collide = false, children }: DesignerProps) {
   const { scene } = useGLTF(designerUrl(file));
   const obj = useMemo(() => {
     const root = scene.clone(true);
@@ -72,13 +81,40 @@ function Model({ file, position = [0, 0, 0], rotation = 0, scale = 1, part, shad
       m.receiveShadow = shadows;
     });
     const g = new THREE.Group();
+    if (fit) {
+      const want = new THREE.Vector3(...fit.size);
+      const holder = new THREE.Group();
+      holder.add(root);
+      root.rotation.y = fit.turn ?? 0;
+      const measure = () => {
+        holder.updateMatrixWorld(true);
+        return new THREE.Box3().setFromObject(holder);
+      };
+      let box = measure();
+      let have = box.getSize(new THREE.Vector3());
+      if (want.y < 0.15 * Math.min(want.x, want.z) && have.y > Math.min(have.x, have.z)) {
+        if (have.x < have.z) root.rotation.z = Math.PI / 2;
+        else root.rotation.x = Math.PI / 2;
+        box = measure();
+        have = box.getSize(new THREE.Vector3());
+      }
+      const k = new THREE.Vector3(want.x / have.x, want.y / have.y, want.z / have.z);
+      if (fit.keepShape === 'height') k.setScalar(k.y);
+      else if (fit.keepShape) k.setScalar(Math.min(k.x, k.y, k.z));
+      // stand on the floor, centred on the placement point (in the unscaled model's units)
+      const c = box.getCenter(new THREE.Vector3());
+      root.position.set(-c.x, -box.min.y, -c.z);
+      g.scale.copy(k);
+      g.add(holder);
+      return g;
+    }
     if (typeof scale === 'number') g.scale.setScalar(scale);
     else g.scale.set(...scale);
     g.add(root);
     return g;
-    // `scale` is a literal at every call site, so compare it by value
+    // `scale` and `fit` are literals at every call site, so compare them by value
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, typeof scale === 'number' ? scale : scale.join(), part, shadows]);
+  }, [scene, typeof scale === 'number' ? scale : scale.join(), fit?.size.join(), fit?.keepShape, fit?.turn, part, shadows]);
   const node = <primitive object={obj} />;
   return collide ? (
     <RigidBody type="fixed" colliders="cuboid" position={position} rotation={[0, rotation, 0]}>
