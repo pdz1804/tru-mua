@@ -1,4 +1,5 @@
 import { Component, Suspense, useContext, useMemo, type ReactNode } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -44,6 +45,8 @@ interface DesignerProps {
   file: DesignerFile;
   position?: [number, number, number];
   rotation?: number;
+  /** Leans the whole piece about X (an awning sloping down to the street), radians. */
+  tilt?: number;
   /** The models are true size and keepsakes are small, so the room scales them up; one number or per axis. */
   scale?: number | [number, number, number];
   /** The door set is one mesh (frame and leaf together): `leaf` keeps only the swinging leaf, `frame` only the fixed frame. */
@@ -57,6 +60,8 @@ interface DesignerProps {
    * (a rug) gets the model's thinnest side turned up.
    */
   fit?: { size: [number, number, number]; keepShape?: boolean | 'height'; turn?: number };
+  /** Turns the model's named node about its own +Y axis (a ceiling fan's blades), in radians per second. */
+  spin?: { node: string; speed: number };
   shadows?: boolean;
   collide?: boolean;
   /** The code-built prop shown until the model arrives, and kept if it never does. */
@@ -66,7 +71,7 @@ interface DesignerProps {
 }
 
 /** Placed by the model's own pivot (bottom-centre, back-centre for wall pieces, the hanging point for lanterns, the hinge edge for the door). */
-function Model({ file, position = [0, 0, 0], rotation = 0, scale = 1, part, fit, shadows = true, collide = false, children }: DesignerProps) {
+function Model({ file, position = [0, 0, 0], rotation = 0, tilt = 0, scale = 1, part, fit, spin, shadows = true, collide = false, children }: DesignerProps) {
   const { scene } = useGLTF(designerUrl(file));
   const obj = useMemo(() => {
     const root = scene.clone(true);
@@ -115,14 +120,18 @@ function Model({ file, position = [0, 0, 0], rotation = 0, scale = 1, part, fit,
     // `scale` and `fit` are literals at every call site, so compare them by value
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, typeof scale === 'number' ? scale : scale.join(), fit?.size.join(), fit?.keepShape, fit?.turn, part, shadows]);
+  const spinner = useMemo(() => (spin ? obj.getObjectByName(spin.node) : undefined), [obj, spin?.node]); // eslint-disable-line react-hooks/exhaustive-deps
+  useFrame((_, dt) => {
+    if (spinner && spin) spinner.rotation.y += spin.speed * Math.min(dt, 0.1);
+  });
   const node = <primitive object={obj} />;
   return collide ? (
-    <RigidBody type="fixed" colliders="cuboid" position={position} rotation={[0, rotation, 0]}>
+    <RigidBody type="fixed" colliders="cuboid" position={position} rotation={[tilt, rotation, 0]}>
       {node}
       {children}
     </RigidBody>
   ) : (
-    <group position={position} rotation={[0, rotation, 0]}>
+    <group position={position} rotation={[tilt, rotation, 0]}>
       {node}
       {children}
     </group>

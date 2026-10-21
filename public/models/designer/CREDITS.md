@@ -27,3 +27,8 @@ tm-bouquet-wrapped, tm-chalkboard, tm-red-stool, tm-exciter, tm-raincoat-worn.
 
 Street set for the rain chapters (also built for this app, same pipeline, original work): trumua-tube-house, trumua-street-lamp,
 trumua-street-tree, trumua-bystander, trumua-banh-trang-stall, trumua-wooden-crate, trumua-gas-canopy, trumua-promenade-railing.
+
+Café furniture and façade (also built for this app, same pipeline, original work): trumua-round-cafe-table, trumua-cafe-chair,
+trumua-bar-counter, trumua-coat-rack, trumua-side-table, trumua-side-table-drawers, trumua-low-shelf, trumua-ceiling-fan,
+trumua-glass-vase, trumua-white-plate, trumua-wall-frame-small, trumua-chapter-frame, trumua-chapter-sign, trumua-cafe-awning,
+trumua-neon-emblem, trumua-cafe-window. (trumua-street-lamp above is used on the café street as well.)
