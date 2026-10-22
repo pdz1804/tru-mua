@@ -69,6 +69,24 @@ export const DESIGNER_FILES = [
   'hall-runner-rug',
   'held-coffee-table',
   'room-floor-cactus',
+  // café furniture and façade built for this app: true size, bottom-centre pivot (back-centre for wall pieces)
+  'trumua-round-cafe-table',
+  'trumua-cafe-chair',
+  'trumua-bar-counter',
+  'trumua-coat-rack',
+  'trumua-side-table',
+  'trumua-side-table-drawers',
+  'trumua-low-shelf',
+  'trumua-ceiling-fan',
+  'trumua-glass-vase',
+  'trumua-white-plate',
+  'trumua-wall-frame-small',
+  'trumua-chapter-frame',
+  'trumua-chapter-sign',
+  'trumua-cafe-awning',
+  'trumua-neon-emblem',
+  'trumua-cafe-window',
+  'trumua-street-lamp',
 ] as const;
 export type DesignerFile = (typeof DESIGNER_FILES)[number];
 

@@ -32,6 +32,10 @@ const WIN = {
   ] as const,
 };
 const SPAWN: [number, number, number] = [0, 0.12, 5.2];
+/** Height of the awning's back edge on the front wall (the model's pivot is its mid-height at the back). */
+const AWNING_Y = 2.9;
+/** Where the street lamps' light sits (z): under the lens of the designer's lamp, whose arm reaches 1.4 m from the pole at z 3.3. */
+const LAMP_HEAD_Z = 1.9;
 const touch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
 function usePBR(name: string, rx: number, ry: number, tint?: string) {
@@ -59,6 +63,51 @@ function usePBR(name: string, rx: number, ry: number, tint?: string) {
       envMapIntensity: 0.5,
     });
   }, [t, rx, ry, tint]);
+}
+
+/** The designer's café chair (true size, seat 46 cm) in place of the CC0 wooden chair; same placement, front +z. */
+function CafeChair({ position, rotation = 0 }: { position: [number, number, number]; rotation?: number }) {
+  return (
+    <Designer
+      file="trumua-cafe-chair"
+      position={position}
+      rotation={rotation}
+      collide
+      fallback={<Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={position} rotation={rotation} collide />}
+    />
+  );
+}
+
+/** The designer's round café table, stretched to a 0.95 m top at the same height as the table it replaces (keepsakes sit on it). */
+function RoundTable({ top, fallback }: { top: number; fallback: React.ReactNode }) {
+  return <Designer file="trumua-round-cafe-table" fit={{ size: [0.95, top, 0.95] }} collide fallback={fallback} />;
+}
+
+/**
+ * The designer's side table (45 cm square, top at 72 cm), stretched along x to the width the keepsakes on it need so the
+ * top stays at the height they rest on. The old CC0 table is a 1 m console, so a wider run keeps its footprint close.
+ */
+function SideTable({
+  width,
+  position,
+  rotation,
+  collide = true,
+}: {
+  width: number;
+  position?: [number, number, number];
+  rotation?: number;
+  collide?: boolean;
+}) {
+  return (
+    <Designer
+      file="trumua-side-table"
+      fit={{ size: [width, 0.72, 0.45] }}
+      position={position}
+      rotation={rotation}
+      collide={collide}
+      fallback={<Prop src="furniture-kenney/sideTable.glb" height={0.72} position={position} rotation={rotation} collide={collide} />}
+    />
+  );
 }
 
 /** A solid box that is both visible and a physics wall. */
@@ -123,32 +172,61 @@ function Facade() {
             <planeGeometry args={[b - a, WIN.y1 - WIN.y0]} />
             <meshPhysicalMaterial color="#cfe3f5" transparent opacity={0.16} roughness={0.04} metalness={0.1} clearcoat={1} side={THREE.DoubleSide} />
           </mesh>
-          {[a, (a + b) / 2, b].map((x) => (
-            <mesh key={x} material={frame} position={[x, (WIN.y0 + WIN.y1) / 2, -0.13]}>
-              <boxGeometry args={[0.07, WIN.y1 - WIN.y0, 0.1]} />
-            </mesh>
-          ))}
-          {[WIN.y0, WIN.y1].map((y) => (
-            <mesh key={y} material={frame} position={[(a + b) / 2, y, -0.1]}>
-              <boxGeometry args={[b - a + 0.1, 0.08, 0.26]} />
-            </mesh>
-          ))}
+          {/* the designer's window frame (3.8 x 1.7 m, six open panes) fills the opening; its sill pokes out to z +0.03 like the boxes did */}
+          <Designer
+            file="trumua-cafe-window"
+            position={[(a + b) / 2, (WIN.y0 + WIN.y1) / 2, -0.23]}
+            fallback={
+              <>
+                {[a, (a + b) / 2, b].map((x) => (
+                  <mesh key={x} material={frame} position={[x, (WIN.y0 + WIN.y1) / 2, -0.13]}>
+                    <boxGeometry args={[0.07, WIN.y1 - WIN.y0, 0.1]} />
+                  </mesh>
+                ))}
+                {[WIN.y0, WIN.y1].map((y) => (
+                  <mesh key={y} material={frame} position={[(a + b) / 2, y, -0.1]}>
+                    <boxGeometry args={[b - a + 0.1, 0.08, 0.26]} />
+                  </mesh>
+                ))}
+              </>
+            }
+          />
+
           <CuboidCollider args={[(b - a) / 2, (WIN.y1 - WIN.y0) / 2, 0.1]} position={[(a + b) / 2, (WIN.y0 + WIN.y1) / 2, -0.15]} />
         </group>
       ))}
       {/* awning + neon sign */}
-      <group position={[0, 2.85, 0.55]} rotation={[0.28, 0, 0]}>
-        {Array.from({ length: 14 }, (_, i) => (
-          <mesh key={i} position={[-6.5 + i + 0.5, 0, 0]} castShadow>
-            <boxGeometry args={[1, 0.04, 1.3]} />
-            <meshStandardMaterial color={i % 2 ? '#f6e7c4' : '#2f6f62'} roughness={0.8} />
-          </mesh>
-        ))}
-      </group>
+      {/* five 2.8 m awnings (the 3 m model, squeezed a touch) side by side across the front wall, sloped 16 degrees like the old stripes */}
+      {[-5.6, -2.8, 0, 2.8, 5.6].map((x, i) => (
+        <Designer
+          key={x}
+          file="trumua-cafe-awning"
+          position={[x, AWNING_Y, 0]}
+          tilt={0.28}
+          scale={[2.8 / 3, 1, 1]}
+          fallback={
+            // the code-built stripes cover the whole front, so only the first instance carries them
+            i === 0 ? (
+              <group position={[0, 2.85, 0.55]} rotation={[0.28, 0, 0]}>
+                {Array.from({ length: 14 }, (_, k) => (
+                  <mesh key={k} position={[-6.5 + k + 0.5, 0, 0]} castShadow>
+                    <boxGeometry args={[1, 0.04, 1.3]} />
+                    <meshStandardMaterial color={k % 2 ? '#f6e7c4' : '#2f6f62'} roughness={0.8} />
+                  </mesh>
+                ))}
+              </group>
+            ) : null
+          }
+        />
+      ))}
       <mesh position={[0, 3.75, 0.03]}>
         <planeGeometry args={[4.2, 0.9]} />
         <meshBasicMaterial map={sign} transparent toneMapped={false} color={new THREE.Color(1.6, 1.5, 1.3)} />
       </mesh>
+      {/* a glowing umbrella-and-raindrops emblem each side of the lettered sign (decoration only, so nothing stands in for it) */}
+      {[-3.6, 3.6].map((x) => (
+        <Designer key={x} file="trumua-neon-emblem" position={[x, 3.75, 0.01]} shadows={false} />
+      ))}
       <Text position={[0, 3.2, 0.03]} fontSize={0.2} color="#f6e7c4" anchorX="center">
         cà phê · kỷ niệm · nơi trú mưa của hai đứa
       </Text>
@@ -208,9 +286,15 @@ function Street() {
       </mesh>
       {[-4, 4].map((x) => (
         <group key={x}>
-          <Prop src="street-kenney/detail-light-single.glb" height={4.3} position={[x, 0.12, 3.3]} rotation={Math.PI} />
-          <pointLight position={[x, 4, 2.6]} color="#ffb46b" intensity={14} distance={11} decay={2} />
-          <Sparkles position={[x, 4, 2.6]} count={8} scale={0.6} size={3} color="#ffd29a" speed={0.2} />
+          {/* the designer's lamp has its arm toward +z; turned round it reaches 1.4 m towards the café, so its lens hangs at z 1.9 */}
+          <Designer
+            file="trumua-street-lamp"
+            position={[x, 0.12, 3.3]}
+            rotation={Math.PI}
+            fallback={<Prop src="street-kenney/detail-light-single.glb" height={4.3} position={[x, 0.12, 3.3]} rotation={Math.PI} />}
+          />
+          <pointLight position={[x, 4, LAMP_HEAD_Z]} color="#ffb46b" intensity={14} distance={11} decay={2} />
+          <Sparkles position={[x, 4, LAMP_HEAD_Z]} count={8} scale={0.6} size={3} color="#ffd29a" speed={0.2} />
         </group>
       ))}
       <Designer
@@ -397,7 +481,12 @@ function Interior() {
         shadows={false}
         fallback={<Prop src="furniture-kaykit/rug_oval_A.gltf" width={2.6} position={[0.6, 0.03, -6.6]} shadows={false} />}
       />
-      <Prop src="furniture-kenney/coatRack.glb" height={1.8} position={[-2.3, 0.02, -0.7]} collide />
+      <Designer
+        file="trumua-coat-rack"
+        position={[-2.3, 0.02, -0.7]}
+        collide
+        fallback={<Prop src="furniture-kenney/coatRack.glb" height={1.8} position={[-2.3, 0.02, -0.7]} collide />}
+      />
       {/* just inside the door: umbrella stand on the right, a lantern-glow sconce on each side wall */}
       <Designer file="scene-umbrella-stand" scale={1.3} position={[1.45, 0.02, -0.5]} collide />
       {(
@@ -429,7 +518,14 @@ function Interior() {
       ))}
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.4} position={[-6.4, 0.02, -11.3]} collide />
       <Prop src="furniture-kenney/pottedPlant.glb" height={1.4} position={[6.4, 0.02, -1.2]} collide />
-      <Prop src="furniture-kenney/ceilingFan.glb" width={1.4} position={[0, ROOM.h - 0.55, -4.2]} shadows={false} />
+      {/* hangs from the ceiling by its mount (the model's pivot) and turns slowly on its blades node */}
+      <Designer
+        file="trumua-ceiling-fan"
+        position={[0, ROOM.h, -4.2]}
+        shadows={false}
+        spin={{ node: 'blades', speed: 1.2 }}
+        fallback={<Prop src="furniture-kenney/ceilingFan.glb" width={1.4} position={[0, ROOM.h - 0.55, -4.2]} shadows={false} />}
+      />
       <pointLight position={[-6, 1.7, -2.9]} color="#ffcf8a" intensity={2.5} distance={4} />
     </group>
   );
@@ -467,8 +563,12 @@ const SPOTS: Spot[] = [
     at: [2.2, -0.9],
     node: (
       <>
-        <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
-        <Prop src="restaurant-kaykit/jar_A_medium.gltf" height={0.26} position={[0, 0.72, 0]} />
+        <SideTable width={0.9} />
+        <Designer
+          file="trumua-glass-vase"
+          position={[0, 0.72, 0]}
+          fallback={<Prop src="restaurant-kaykit/jar_A_medium.gltf" height={0.26} position={[0, 0.72, 0]} />}
+        />
         {/* the wrapped bouquet stands in the jar, stem tip at the jar's mouth */}
         <Designer
           file="tm-bouquet-wrapped"
@@ -518,7 +618,7 @@ const SPOTS: Spot[] = [
     at: [-3.2, -2.3],
     node: (
       <>
-        <Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />
+        <RoundTable top={0.75} fallback={<Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />} />
         <Designer
           file="keepsake-phin-keychain"
           scale={2.4}
@@ -530,7 +630,7 @@ const SPOTS: Spot[] = [
             </>
           }
         />
-        <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, -0.75]} collide />
+        <CafeChair position={[0, 0, -0.75]} />
       </>
     ),
   },
@@ -539,9 +639,9 @@ const SPOTS: Spot[] = [
     at: [3.2, -2.3],
     node: (
       <>
-        <Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />
+        <RoundTable top={0.75} fallback={<Prop src="furniture-kenney/tableRound.glb" height={0.75} collide />} />
         <Designer file="tm-firefly-necklace" scale={2.4} position={[0, 0.75, 0]} fallback={<Necklace position={[0, 0.95, 0]} />} />
-        <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, -0.75]} collide />
+        <CafeChair position={[0, 0, -0.75]} />
       </>
     ),
   },
@@ -550,7 +650,13 @@ const SPOTS: Spot[] = [
     at: [5.9, -2.8],
     node: (
       <>
-        <Prop src="furniture-kenney/kitchenBar.glb" height={1.05} rotation={-Math.PI / 2} collide />
+        {/* the 2 m bar is squeezed to the old 1.1 m run (the table beside it leaves no more room); `turn` puts its front toward the room */}
+        <Designer
+          file="trumua-bar-counter"
+          fit={{ size: [0.6, 1.05, 1.1], turn: -Math.PI / 2 }}
+          collide
+          fallback={<Prop src="furniture-kenney/kitchenBar.glb" height={1.05} rotation={-Math.PI / 2} collide />}
+        />
         <Designer
           file="tm-menu-card"
           scale={1.6}
@@ -650,7 +756,7 @@ const SPOTS: Spot[] = [
     node: (
       <>
         {/* her baby photo on a little table under the wall, its caption drawn on the blank picture (no photo ships) */}
-        <Prop src="furniture-kenney/sideTable.glb" height={0.72} position={[0.3, -1.38, 0]} rotation={Math.PI / 2} />
+        <SideTable width={0.7} position={[0.3, -1.38, 0]} rotation={Math.PI / 2} collide={false} />
         <Designer
           file="tm-baby-photo-frame"
           scale={1.7}
@@ -681,7 +787,13 @@ const SPOTS: Spot[] = [
     at: [-6.2, -9.5],
     node: (
       <>
-        <Prop src="furniture-kenney/sideTableDrawers.glb" height={0.7} rotation={Math.PI / 2} collide />
+        <Designer
+          file="trumua-side-table-drawers"
+          fit={{ size: [0.8, 0.7, 0.45] }}
+          rotation={Math.PI / 2}
+          collide
+          fallback={<Prop src="furniture-kenney/sideTableDrawers.glb" height={0.7} rotation={Math.PI / 2} collide />}
+        />
         <Designer
           file="keepsake-radio"
           fit={{ size: [0.39, 0.274, 0.17], keepShape: 'height' }}
@@ -697,8 +809,13 @@ const SPOTS: Spot[] = [
     at: [-1.6, -5.6],
     node: (
       <>
-        <Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />
-        <Prop src="food-kenney/plate.glb" width={0.46} position={[0, 0.78, 0]} />
+        <RoundTable top={0.78} fallback={<Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />} />
+        <Designer
+          file="trumua-white-plate"
+          fit={{ size: [0.46, 0.054, 0.46] }}
+          position={[0, 0.78, 0]}
+          fallback={<Prop src="food-kenney/plate.glb" width={0.46} position={[0, 0.78, 0]} />}
+        />
         <Designer
           file="keepsake-fried-chicken-plush"
           fit={{ size: [0.375, 0.194, 0.195], keepShape: 'height' }}
@@ -706,8 +823,8 @@ const SPOTS: Spot[] = [
           rotation={0.5}
           fallback={<Prop src="food-kenney/donut.glb" width={0.12} position={[0, 0.8, 0]} tint="#d98a3a" />}
         />
-        <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0.85, 0, 0]} rotation={-Math.PI / 2} collide />
-        <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[-0.85, 0, 0]} rotation={Math.PI / 2} collide />
+        <CafeChair position={[0.85, 0, 0]} rotation={-Math.PI / 2} />
+        <CafeChair position={[-0.85, 0, 0]} rotation={Math.PI / 2} />
       </>
     ),
   },
@@ -716,7 +833,7 @@ const SPOTS: Spot[] = [
     at: [1.8, -7.2],
     node: (
       <>
-        <Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />
+        <RoundTable top={0.78} fallback={<Prop src="restaurant-kaykit/table_round_A.gltf" height={0.78} collide />} />
         {/* the bag of bread loaves from that day */}
         <Designer
           file="tm-banh-mi-bag"
@@ -730,7 +847,7 @@ const SPOTS: Spot[] = [
             </>
           }
         />
-        <Prop src="furniture-kaykit/chair_A_wood.gltf" height={0.95} position={[0, 0, 0.85]} rotation={Math.PI} collide />
+        <CafeChair position={[0, 0, 0.85]} rotation={Math.PI} />
         {/* the red and blue raincoats of that day, hung to dry on a rod from the ceiling beside the table */}
         <group position={[1.35, 0, -0.1]}>
           <mesh position={[0, 1.78, 0]} rotation={[0, 0, Math.PI / 2]}>
@@ -753,7 +870,7 @@ const SPOTS: Spot[] = [
     at: [3.0, -8.2],
     node: (
       <>
-        <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
+        <SideTable width={0.6} />
         <Designer
           file="keepsake-bubble-wand"
           scale={3}
@@ -861,7 +978,7 @@ const SPOTS: Spot[] = [
     at: [6.0, -9.2],
     node: (
       <>
-        <Prop src="furniture-kenney/sideTable.glb" height={0.72} collide />
+        <SideTable width={0.7} />
         <Designer
           file="keepsake-film-camera"
           scale={2.4}
@@ -953,7 +1070,12 @@ const SPOTS: Spot[] = [
     at: [-4.4, -11.4],
     node: (
       <>
-        <Prop src="furniture-kaykit/shelf_B_large_decorated.gltf" width={1.8} height={0.8} collide />
+        <Designer
+          file="trumua-low-shelf"
+          fit={{ size: [1.8, 0.8, 0.45] }}
+          collide
+          fallback={<Prop src="furniture-kaykit/shelf_B_large_decorated.gltf" width={1.8} height={0.8} collide />}
+        />
         <Designer
           file="keepsake-shell-car"
           scale={2.5}
@@ -978,7 +1100,7 @@ const SPOTS: Spot[] = [
           sub="08 · 08"
         />
         {/* the two ticket stubs, on a little table under the poster (the group sits 1.45 m up the wall) */}
-        <Prop src="furniture-kenney/sideTable.glb" height={0.72} position={[0.35, -1.43, 0.1]} rotation={Math.PI / 2} />
+        <SideTable width={0.7} position={[0.35, -1.43, 0.1]} rotation={Math.PI / 2} collide={false} />
         <Designer file="tm-movie-ticket-pair" scale={2.4} position={[0.35, -0.71, 0.1]} rotation={Math.PI / 2 + 0.3} />
       </>
     ),
@@ -1016,7 +1138,13 @@ function ChapterFrame({ i }: { i: number }) {
   useEffect(() => register({ id: c.id, x, z, radius: 1.3, prompt: `Vào chương mưa ${c.date} · ${c.title}`, onUse: () => play(c.id) }), [c, x, z, play]);
   return (
     <group position={[x, 0.02, z]}>
-      <Prop src="furniture-kaykit/pictureframe_standing_B.gltf" height={1.25} />
+      {/* the easel leans back 10 degrees; widened to 1.4 m so the title fits its blank field, and pushed forward so the field sits just behind the text */}
+      <Designer
+        file="trumua-chapter-frame"
+        scale={[1.6, 0.9, 1.6]}
+        position={[0, 0, 0.06]}
+        fallback={<Prop src="furniture-kaykit/pictureframe_standing_B.gltf" height={1.25} />}
+      />
       <Text position={[0, 0.66, 0.3]} fontSize={0.13} color="#3a2a05" anchorX="center" maxWidth={1.1} textAlign="center">
         {c.title}
       </Text>
@@ -1079,26 +1207,41 @@ function ChapterSign() {
   const glowCol = useMemo(() => new THREE.Color(0.55, 1.0, 1.7), []);
   return (
     <group position={[1.75, 0, -3.6]} rotation={[0, -0.4, 0]}>
-      <mesh position={[0, 0.7, -0.03]} castShadow>
-        <cylinderGeometry args={[0.04, 0.05, 1.4, 8]} />
-        <meshStandardMaterial color="#3b2a1f" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 1.4, 0]} castShadow>
-        <boxGeometry args={[1.5, 0.5, 0.06]} />
-        <meshStandardMaterial color="#4a2f1e" roughness={0.6} emissive="#2a1a10" emissiveIntensity={0.7} />
-      </mesh>
-      <Text position={[-0.18, 1.4, 0.04]} fontSize={0.19} color="#f6e7c4" anchorX="center" anchorY="middle">
-        Chương mưa
-      </Text>
-      {/* an upward chevron: straight ahead, where the trail goes */}
-      <group position={[0.58, 1.4, 0.04]}>
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * 0.065, -0.015, 0]} rotation={[0, 0, s * -0.75]}>
-            <boxGeometry args={[0.2, 0.055, 0.02]} />
-            <meshBasicMaterial color={glowCol} toneMapped={false} />
-          </mesh>
-        ))}
-      </group>
+      {/*
+        The designer's signpost: pole axis at the floor, a 1.5 x 0.6 m board whose centre is at 1.6 m, an emissive chevron on
+        its right. The lettering is drawn over its blank left field, so it only appears once the model has loaded.
+      */}
+      <Designer
+        file="trumua-chapter-sign"
+        fallback={
+          <>
+            <mesh position={[0, 0.7, -0.03]} castShadow>
+              <cylinderGeometry args={[0.04, 0.05, 1.4, 8]} />
+              <meshStandardMaterial color="#3b2a1f" roughness={0.7} />
+            </mesh>
+            <mesh position={[0, 1.4, 0]} castShadow>
+              <boxGeometry args={[1.5, 0.5, 0.06]} />
+              <meshStandardMaterial color="#4a2f1e" roughness={0.6} emissive="#2a1a10" emissiveIntensity={0.7} />
+            </mesh>
+            <Text position={[-0.18, 1.4, 0.04]} fontSize={0.19} color="#f6e7c4" anchorX="center" anchorY="middle">
+              Chương mưa
+            </Text>
+            {/* an upward chevron: straight ahead, where the trail goes */}
+            <group position={[0.58, 1.4, 0.04]}>
+              {[-1, 1].map((s) => (
+                <mesh key={s} position={[s * 0.065, -0.015, 0]} rotation={[0, 0, s * -0.75]}>
+                  <boxGeometry args={[0.2, 0.055, 0.02]} />
+                  <meshBasicMaterial color={glowCol} toneMapped={false} />
+                </mesh>
+              ))}
+            </group>
+          </>
+        }
+      >
+        <Text position={[-0.28, 1.6, 0.07]} fontSize={0.155} color="#f6e7c4" anchorX="center" anchorY="middle">
+          Chương mưa
+        </Text>
+      </Designer>
     </group>
   );
 }

@@ -276,15 +276,22 @@ export function Frame({
   sub?: string;
   src?: string;
 }) {
-  return (
-    <group position={position} rotation={[0, rotation, 0]}>
-      <Prop src={src} height={height} />
-      <Text position={[0, height * 0.55, height * 0.08]} fontSize={height * 0.13} color="#3a2a05" anchorX="center" maxWidth={height * 0.7} textAlign="center">
+  // `dy` shifts the text rows into a frame whose pivot is its centre (the CC0 frames stand on their bottom edge)
+  const texts = (dy: number) => (
+    <>
+      <Text
+        position={[0, height * 0.55 - dy, height * 0.08]}
+        fontSize={height * 0.13}
+        color="#3a2a05"
+        anchorX="center"
+        maxWidth={height * 0.7}
+        textAlign="center"
+      >
         {label}
       </Text>
       {sub && (
         <Text
-          position={[0, height * 0.38, height * 0.08]}
+          position={[0, height * 0.38 - dy, height * 0.08]}
           fontSize={height * 0.075}
           color="#6b5532"
           anchorX="center"
@@ -294,6 +301,28 @@ export function Frame({
           {sub}
         </Text>
       )}
+    </>
+  );
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {/*
+        The designer's slim wall frame (0.55 x 0.70 m, back-centre pivot) is widened to 0.84 x height like the frames it replaces
+        and held 13 cm back so its back rests on the wall (the spots sit 15 cm off it). The text keeps its z (+0.08 of the
+        height) measured from the frame's back, so it still floats just in front of the blank field.
+      */}
+      <Designer
+        file="trumua-wall-frame-small"
+        scale={[(0.84 * height) / 0.55, height / 0.7, height / 0.7]}
+        position={[0, height / 2, -0.13]}
+        fallback={
+          <>
+            <Prop src={src} height={height} />
+            {texts(0)}
+          </>
+        }
+      >
+        {texts(height / 2)}
+      </Designer>
     </group>
   );
 }
