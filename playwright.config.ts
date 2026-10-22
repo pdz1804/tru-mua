@@ -1,5 +1,4 @@
-﻿import { existsSync } from 'node:fs';
-import { defineConfig, devices } from '@playwright/test';
+﻿import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.E2E_PORT ?? 5191);
 export default defineConfig({
@@ -17,13 +16,10 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
-  // The walkthrough runs against the production bundle (`vite preview`), the thing that ships.
-  // CI downloads the bundle the build job produced; locally a missing dist is built first.
-  // E2E_DEV=1 uses the dev server instead.
+  // The dev server: the walkthroughs drive the game through dev-only hooks (__tm, __store, __ch)
+  // that the production bundle strips, so they stay off the live site.
   webServer: {
-    command: process.env.E2E_DEV
-      ? `npx vite --port ${port} --strictPort`
-      : `${existsSync('dist/index.html') ? '' : 'npm run build && '}npx vite preview --port ${port} --strictPort`,
+    command: `npx vite --port ${port} --strictPort`,
     port,
     reuseExistingServer: true,
     timeout: 180_000,

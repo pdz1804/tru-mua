@@ -123,14 +123,15 @@ jobs:
             bundle-budget.json
             models-report.json
           retention-days: 14
-      # The e2e matrix tests this exact bundle, and deploy.yml ships it, instead of rebuilding it.
+      # deploy.yml ships this exact bundle instead of rebuilding it.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: dist, path: dist, retention-days: 3 }
 
   e2e:
     name: Browser walkthrough (${{ matrix.project }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # SwiftShader renders the café at a few fps; a desktop run with one retry can take ~40 min
+    timeout-minutes: 60
     needs: [build]
     strategy:
       fail-fast: false
@@ -144,9 +145,6 @@ jobs:
         with: { node-version-file: .nvmrc, cache: npm }
       - name: Install
         run: npm ci
-      # playwright.config.ts serves this bundle with `vite preview` when dist exists.
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with: { name: dist, path: dist }
       - name: Resolve Playwright version
         id: pw
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
