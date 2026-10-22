@@ -1,119 +1,293 @@
 name: CI
 
+# Keep the name "CI": deploy.yml triggers on it.
+# No paths-ignore: the required "CI passed" check must exist on every PR, docs-only included.
 on:
   push:
     branches: [main]
   pull_request:
+    # "edited" re-runs the PR-title check when only the title changes.
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 env:
-  NODE_VERSION: 22
+  FORCE_COLOR: '1'
 
 jobs:
-  quality:
-    name: Lint, types, unit tests, build, private-data scan
+  unit:
+    name: Unit / Node ${{ matrix.node }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint -- --max-warnings=0
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run check:private
-      - run: npm run check:models
-      # build also runs the private-data scan against the shipped bundle
-      - run: npm run build
-      - name: Bundle report
-        run: |
-          {
-            echo '### Bundle'
-            echo '| File | Size | Gzip |'
-            echo '|---|---:|---:|'
-            for f in dist/assets/*.js dist/assets/*.css; do
-              printf '| `%s` | %s KB | %s KB |\n' "$(basename "$f")" \
-                "$(( $(stat -c%s "$f") / 1024 ))" "$(( $(gzip -c "$f" | wc -c) / 1024 ))"
-            done
-            echo
-            echo "Models: $(ls public/models/designer/*.glb | wc -l) files, $(du -sh public/models/designer | cut -f1)"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: '${{ matrix.node }}', cache: npm }
+      - name: Install
+        run: npm ci
+      - name: Unit tests
+        run: npm test -- --reporter=default --reporter=junit --outputFile.junit=junit.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: unit-tests-node${{ matrix.node }}
+          path: junit.xml
+          retention-days: 14
 
-  commits:
-    name: Conventional commits
-    # bot updates write their own long release-note bodies; people's commits are what this guards
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+  lint:
+    name: Lint, format, types
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
-      - run: npm ci
-      - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-  secrets:
-    name: Secret scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-        with: { fetch-depth: 0 }
-      # the pinned CLI over the full history; no third-party action or token needed
-      - name: gitleaks
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - name: Install
+        run: npm ci
+      - name: Prettier (format check)
+        run: npm run format:check
+      - name: ESLint (zero warnings)
+        if: ${{ !cancelled() }}
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz gitleaks
-          ./gitleaks detect --source . --redact --verbose --report-format sarif --report-path gitleaks.sarif
+          mkdir -p lint
+          npx eslint . -f json -o lint/eslint.json || true
+          npx eslint . --max-warnings=0
+      - name: Typecheck (strict)
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+      - name: Private-data scan of the source
+        if: ${{ !cancelled() }}
+        run: npm run check:private
+      - name: CI script tests
+        if: ${{ !cancelled() }}
+        run: node --test .github/scripts/ci-scripts.test.mjs
+      - name: Commit messages since main (Conventional Commits)
+        # bot updates write their own long release-note bodies; people's commits are what this guards
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' && !cancelled() }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=50 origin "$BASE_SHA" "$HEAD_SHA"
+          npx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with: { name: lint-report, path: lint, retention-days: 14 }
+
+  build:
+    name: Build, download budget, models
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - name: Install
+        run: npm ci
+      - name: Production build (typecheck, Vite, private-data scan of the bundle)
+        run: npm run build
+      - name: Designer models (glTF 2.0, no Draco, size and triangle caps, manifest matches folder)
+        if: ${{ !cancelled() }}
+        run: npm run check:models
+      - name: Bundle stats
+        run: node .github/scripts/bundle-stats.mjs dist bundle-stats.json
+      - name: Download budget (blocks above baseline + 10%)
+        run: node .github/scripts/bundle-budget.mjs bundle-stats.json .github/bundle-baseline.json bundle-budget.json
+      - name: No secrets or source maps in the bundle
+        run: |
+          if grep -rlE "AIza[0-9A-Za-z_-]{35}|sk-proj-|-----BEGIN [A-Z ]*PRIVATE KEY" dist; then
+            echo "::error::A key-like string is in the bundle (files above)"; exit 1
+          fi
+          if find dist -name '*.map' | grep .; then
+            echo "::error::Source maps would ship (files above)"; exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: build-quality
+          path: |
+            bundle-stats.json
+            bundle-budget.json
+            models-report.json
+          retention-days: 14
+      # deploy.yml ships this exact bundle instead of rebuilding it.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: dist, path: dist, retention-days: 3 }
 
   e2e:
     name: Browser walkthrough (${{ matrix.project }})
-    needs: quality
     runs-on: ubuntu-latest
+    # SwiftShader renders the café at a few fps; a desktop run with one retry can take ~40 min
     timeout-minutes: 60
+    needs: [build]
     strategy:
       fail-fast: false
-      # desktop and phone run on separate runners: each gets all 4 vCPUs for software WebGL
+      # desktop and mobile run on separate runners: each gets all 4 vCPUs for software WebGL
       matrix:
         project: [desktop, mobile]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
-      - run: npm ci
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+      - name: Install
+        run: npm ci
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
-        uses: actions/cache@v6
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=${{ matrix.project }}
-      - if: failure()
-        uses: actions/upload-artifact@v7
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install Chromium
+        env:
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Playwright (${{ matrix.project }})
+        env:
+          PROJECT: ${{ matrix.project }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
+        run: npx playwright test --project="$PROJECT" --reporter=list,json,html
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
         with:
-          name: playwright-report-${{ matrix.project }}
+          name: e2e-${{ matrix.project }}
           path: |
+            playwright-results.json
             playwright-report
-            test-results
-          retention-days: 7
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with: { name: 'e2e-${{ matrix.project }}-traces', path: test-results, retention-days: 14 }
 
-  # one stable required check for branch protection, whatever the matrix becomes
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc }
+      - name: npm audit (production high/critical blocks; everything reported)
+        run: |
+          mkdir -p audit
+          npm audit --omit=dev --json > audit/prod-audit.json || true
+          npm audit --json > audit/all-audit.json || true
+          npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with: { name: audit-reports, path: audit, retention-days: 14 }
+
+  codeql:
+    name: CodeQL
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      actions: read
+
+  secrets:
+    name: Secret scan
+    uses: ./.github/workflows/secret-scan.yml
+    permissions:
+      contents: read
+
+  workflows:
+    name: Workflow lint (actionlint + zizmor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+      ZIZMOR_VERSION: 1.30.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: actionlint (pinned, checksum-verified)
+        run: |
+          set -euo pipefail
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$tarball"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: zizmor (workflow security audit)
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run "zizmor==${ZIZMOR_VERSION}" --format=github .github/workflows
+
+  pr-title:
+    name: PR title (Conventional Commits)
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    steps:
+      # Squash merge makes the PR title the commit subject on main, so it must be conventional.
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            refactor
+            test
+            ci
+            chore
+            perf
+            build
+            style
+            revert
+
+  # The single required status check. The job name must stay exactly "CI passed": branch protection
+  # requires that name. It always runs (even when a dependency failed or was cancelled) and fails
+  # on any failed or cancelled gate, so a skipped check can never count as passing. Add every new
+  # gate to `needs` below.
   ci-passed:
     name: CI passed
-    if: always()
-    needs: [quality, commits, secrets, e2e]
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
+    needs: [unit, lint, build, e2e, audit, codeql, secrets, workflows, pr-title]
+    if: always()
     steps:
-      - name: All required jobs succeeded
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { sparse-checkout: .github/scripts, persist-credentials: false }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        # every report artifact has a dash in its name; the "dist" bundle does not
+        with: { path: reports, pattern: '*-*' }
+      - name: Write the quality summary
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          CODEQL_TOTAL: ${{ needs.codeql.outputs.total }}
+          CODEQL_ERRORS: ${{ needs.codeql.outputs.errors }}
+        run: node .github/scripts/quality-report.mjs reports
+      - name: Fail if any gate failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
-          echo '${{ toJSON(needs) }}' | jq -e 'to_entries | all(.value.result == "success" or .value.result == "skipped")'
+          echo "One or more quality gates failed or were cancelled; see the table above."
+          exit 1

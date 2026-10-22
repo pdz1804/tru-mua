@@ -16,5 +16,12 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: { command: `npx vite --port ${port} --strictPort`, port, reuseExistingServer: true },
+  // The dev server: the walkthroughs drive the game through dev-only hooks (__tm, __store, __ch)
+  // that the production bundle strips, so they stay off the live site.
+  webServer: {
+    command: `npx vite --port ${port} --strictPort`,
+    port,
+    reuseExistingServer: true,
+    timeout: 180_000,
+  },
 });

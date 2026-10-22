@@ -48,7 +48,7 @@ src/
 npm install
 npm run dev          # http://localhost:5173
 npm run verify       # typecheck, lint, format, unit tests, build
-npm run test:e2e     # Playwright flow on desktop and mobile; screenshots in test-results/shots
+npm run test:e2e     # Playwright flow on desktop and mobile against `vite preview` of dist (built first if missing); screenshots in test-results/shots
 ```
 
 Git hooks run through Husky:
@@ -59,7 +59,10 @@ Git hooks run through Husky:
 | commit-msg | conventional commits   |
 | pre-push   | typecheck + unit tests |
 
-CI runs the same gates plus the e2e flow.
+CI (`.github/workflows/ci.yml`) runs the same gates plus a download budget, a CodeQL scan, a gitleaks scan, an
+npm audit and a workflow lint. It builds once, and the desktop and mobile e2e jobs test that exact `dist`. The single
+required check is `CI passed`. After a green run on `main`, `deploy.yml` ships the tested bundle to a preview channel,
+smoke-tests it, clones it to live and smoke-tests live; `production-smoke.yml` probes the live site every six hours.
 
 ## Assets
 

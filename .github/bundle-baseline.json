@@ -1,0 +1,12 @@
+{
+  "note": "Download size of the production build, measured on main 2026-10-22 (code gzip; models and textures raw). CI fails above baseline * (1 + headroom). Raise deliberately in a commit when growth is intended.",
+  "headroom": 0.1,
+  "measures": {
+    "jsGzip": 1245316,
+    "cssGzip": 4945,
+    "largestJsGzip": 798964,
+    "modelBytes": 56744850,
+    "largestModelBytes": 1659264,
+    "textureBytes": 8306134
+  }
+}

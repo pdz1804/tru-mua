@@ -1,5 +1,9 @@
 name: Deploy
 
+# Continuous deployment to Firebase Hosting. Runs only after CI succeeds for a push to main (or by
+# hand), deploys the exact bundle CI tested, and never touches the live site until that bundle has
+# passed a smoke test on a short-lived preview channel. Promotion is a server-side clone of the
+# tested channel, so live receives byte-for-byte what was checked.
 on:
   workflow_run:
     workflows: [CI]
@@ -13,38 +17,101 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write # Workload Identity Federation
+
+env:
+  PROJECT_ID: gen-lang-client-0992083758
+  SITE: tru-mua
+  SITE_URL: https://tru-mua.web.app
+  FIREBASE_TOOLS: firebase-tools@13.29.1
+  # The commit CI tested (workflow_run) or the dispatched commit.
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   deploy:
-    # only a green CI run from a push to this repository (never a fork's pull request)
+    name: Preview, smoke, promote
+    # Deploy only a CI run that succeeded for a push to main in this repository; a PR whose head
+    # branch happens to be called "main" (e.g. from a fork) must never reach production.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read # download the bundle from the CI run
+      id-token: write # Workload Identity Federation
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v7
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm run build
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .nvmrc, cache: npm }
+
+      # A CI-triggered deploy ships the bundle CI built and tested; a manual run builds its own.
+      - name: Fetch the tested bundle
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Build (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        run: npm ci && npm run build
+
       # No long-lived key: WIF mints a short-lived token through a provider pinned to this repo's main branch.
-      - uses: google-github-actions/auth@v3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      - name: Deploy hosting
-        run: npx firebase-tools@13.29.1 deploy --only hosting:tru-mua --project gen-lang-client-0992083758 --non-interactive
-      # A green deploy only means files uploaded; check the page is actually served.
-      - name: Smoke test
+
+      - name: Deploy to a preview channel
+        id: preview
         run: |
           set -euo pipefail
-          url=https://tru-mua.web.app
-          # read the whole page first: piping into grep -q closes early and makes curl exit 23
-          html=$(curl -sSf --max-time 20 "$url")
-          grep -q '<div id="root">' <<<"$html"
-          echo "live: $url"
+          channel="ci-${DEPLOY_SHA::7}"
+          npx -y "$FIREBASE_TOOLS" hosting:channel:deploy "$channel" --only "$SITE" \
+            --project "$PROJECT_ID" --expires 2d --non-interactive --json > channel.json
+          url=$(jq -r --arg s "$SITE" '.result[$s].url' channel.json)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then cat channel.json; exit 1; fi
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test the preview
+        env:
+          URL: ${{ steps.preview.outputs.url }}
+        run: bash .github/scripts/smoke.sh "$URL" "Preview smoke"
+
+      - name: Promote the tested preview to live
+        id: promote
+        env:
+          CHANNEL: ${{ steps.preview.outputs.channel }}
+        run: npx -y "$FIREBASE_TOOLS" hosting:clone "$SITE:$CHANNEL" "$SITE:live" --project "$PROJECT_ID" --non-interactive
+
+      - name: Smoke test live
+        run: bash .github/scripts/smoke.sh "$SITE_URL" "Live smoke"
+
+      - name: Deployment summary
+        if: always()
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          PREVIEW: ${{ steps.preview.outcome }}
+          PROMOTE: ${{ steps.promote.outcome }}
+          TRIGGER: ${{ github.event_name }}
+        run: |
+          {
+            echo "## Production deploy"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`${DEPLOY_SHA::12}\` |"
+            if [ "$TRIGGER" = workflow_run ]; then echo "| Bundle | tested in CI |"; else echo "| Bundle | built by this run |"; fi
+            echo "| Preview channel | ${PREVIEW} ${PREVIEW_URL} |"
+            echo "| Promoted to live | ${PROMOTE} |"
+            echo "| Site | $SITE_URL |"
+          } >> "$GITHUB_STEP_SUMMARY"

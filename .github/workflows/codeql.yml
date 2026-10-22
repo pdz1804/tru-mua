@@ -1,0 +1,55 @@
+name: CodeQL
+
+# Results are kept as a SARIF artifact (no code-scanning upload, so the job needs no write token) and the job fails on any error-level finding.
+# CI calls this workflow on every push/PR (workflow_call) so the quality report can show
+# the finding count; the weekly schedule catches new queries against unchanged code.
+on:
+  workflow_call:
+    outputs:
+      total:
+        description: Total CodeQL findings
+        value: ${{ jobs.analyze.outputs.total }}
+      errors:
+        description: Error-level CodeQL findings
+        value: ${{ jobs.analyze.outputs.errors }}
+  schedule:
+    - cron: '17 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      total: ${{ steps.gate.outputs.total }}
+      errors: ${{ steps.gate.outputs.errors }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with: { languages: javascript-typescript, queries: security-and-quality }
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with: { upload: never, upload-database: false, output: sarif }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with: { name: codeql-sarif, path: sarif, retention-days: 30 }
+      - name: Summarize and gate findings
+        id: gate
+        run: |
+          f=$(find sarif -name '*.sarif' | head -1)
+          total=$(jq '[.runs[].results[]] | length' "$f")
+          errors=$(jq '[.runs[].results[] | select(.level=="error")] | length' "$f")
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+          echo "errors=$errors" >> "$GITHUB_OUTPUT"
+          {
+            echo "### CodeQL: $total findings ($errors error-level)"
+            echo
+            echo "| Level | Rule | Location |"
+            echo "|---|---|---|"
+            jq -r '.runs[].results[] | "| \(.level) | `\(.ruleId)` | `\(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)` |"' "$f" | head -50
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$errors" -eq 0
