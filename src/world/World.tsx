@@ -1308,7 +1308,8 @@ export default function World({ preview = false }: { preview?: boolean }) {
       </DesignerEnabled.Provider>
       <Rain count={touch ? 900 : 2000} indoorBox={indoor} />
       {preview && <PreviewCamera />}
-      <EffectComposer multisampling={touch ? 0 : 4}>
+      {/* 4x MSAA under automated software WebGL makes a single café frame take minutes; real players keep it */}
+      <EffectComposer multisampling={touch || navigator.webdriver ? 0 : 4}>
         <Bloom luminanceThreshold={0.9} intensity={0.7} mipmapBlur />
         <Vignette offset={0.3} darkness={0.6} />
       </EffectComposer>
