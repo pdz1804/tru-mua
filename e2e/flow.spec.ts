@@ -26,8 +26,9 @@ async function cameraSettled(page: Page, atSpot: (cam: [number, number, number])
 /** A screenshot of the 3D room: a frame caught between two software renders comes out blank, so retry until it has content. */
 async function sceneShot(page: Page, name: string, project: string) {
   for (let i = 0; i < 8; i++) {
-    const png = await page.screenshot({ path: `test-results/shots/${project}-${name}.png` });
-    if (png.length > 200_000) return;
+    // a software frame can stall a capture for many minutes: give each try a bounded wait and move on
+    const png = await page.screenshot({ path: `test-results/shots/${project}-${name}.png`, timeout: 60_000, animations: 'disabled' }).catch(() => null);
+    if (png && png.length > 200_000) return;
     await page.waitForTimeout(1000);
   }
   throw new Error(`${name}: the room never rendered`);
