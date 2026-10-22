@@ -1,0 +1,26 @@
+name: Production smoke
+
+# Black-box checks against the live site every six hours: the page, the app script and every
+# designer model. Read-only GETs, no secrets.
+on:
+  schedule:
+    - cron: '37 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke test tru-mua.web.app
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { sparse-checkout: .github/scripts, persist-credentials: false }
+      - name: Probe the live site
+        run: bash .github/scripts/smoke.sh https://tru-mua.web.app "Production smoke"

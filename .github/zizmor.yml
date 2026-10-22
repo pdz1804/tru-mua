@@ -1,0 +1,10 @@
+# zizmor configuration (workflow security audit, run by CI "Workflow lint").
+rules:
+  dangerous-triggers:
+    ignore:
+      # Runs only for a successful CI run of a push to main in this repository (job-level `if`),
+      # checks out that commit read-only and holds no secrets beyond WIF.
+      - deploy.yml
+  self-repository:
+    # "./.github/workflows/x.yml" is the documented local reusable-workflow form; keep it.
+    disable: true
