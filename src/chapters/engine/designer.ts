@@ -18,6 +18,7 @@ import type { Engine } from './runtime';
 const base = import.meta.env.BASE_URL;
 const loader = new GLTFLoader();
 const cache = new Map<string, Promise<THREE.Group>>();
+const failed = new Set<string>();
 
 function load(name: string): Promise<THREE.Group> {
   let p = cache.get(name);
@@ -31,8 +32,11 @@ function load(name: string): Promise<THREE.Group> {
       });
       return g.scene;
     });
-    // a failed fetch must not be remembered, or a later chapter could never retry it
-    p.catch(() => cache.delete(name));
+    // a failed file stays failed for the session: one attempt, one warning, and every placement keeps its code-built prop
+    p.catch((err) => {
+      failed.add(name);
+      console.warn(`designer model ${name} failed to load, keeping the code-built prop`, err);
+    });
     cache.set(name, p);
   }
   return p;
@@ -139,7 +143,8 @@ export async function wearDesigner(e: Engine, parent: THREE.Object3D, name: stri
     opts.after?.(garment);
     return true;
   } catch (err) {
-    console.warn(`designer garment ${name}/${node} failed to load, keeping the code-built one`, err);
+    // a file that failed to load has already been reported once
+    if (!failed.has(name)) console.warn(`designer garment ${name}/${node} failed, keeping the code-built one`, err);
     return false;
   }
 }
@@ -190,7 +195,8 @@ export async function swapDesigner(e: Engine, target: THREE.Object3D, name: stri
     opts.after?.(model);
     return true;
   } catch (err) {
-    console.warn(`designer model ${name} failed to load, keeping the code-built prop`, err);
+    // a file that failed to load has already been reported once; this is a problem with placing the model
+    if (!failed.has(name)) console.warn(`designer model ${name} could not be placed, keeping the code-built prop`, err);
     return false;
   }
 }
