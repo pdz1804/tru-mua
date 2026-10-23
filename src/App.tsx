@@ -6,6 +6,8 @@ import { useGame, type Who } from './state/store';
 import { Title, Studio, Hud, MemoryCard } from './ui/Overlays';
 import { Chibi } from './world/Chibi';
 import { attachKeyboard } from './game/input';
+import { hasWebGL } from './lib/webgl';
+import { NoWebGL, SceneBoundary } from './ui/NoWebGL';
 
 const World = lazy(() => import('./world/World'));
 // the rain chapters bring their own renderer; loaded only when a chapter starts
@@ -65,12 +67,14 @@ function StudioScene({ focus }: { focus: Who }) {
 export default function App() {
   const phase = useGame((s) => s.phase);
   const [tab, setTab] = useState<Who>('su');
+  const [webgl] = useState(() => hasWebGL());
   useEffect(() => attachKeyboard(), []);
   // test hook: e2e drives the store directly (dev builds only)
   useEffect(() => {
     if (import.meta.env.DEV) (window as unknown as { __store?: typeof useGame }).__store = useGame;
   }, []);
   const playing = phase === 'play';
+  if (!webgl) return <NoWebGL />;
   if (phase === 'chapter')
     return (
       <div className="app">
@@ -80,28 +84,30 @@ export default function App() {
       </div>
     );
   return (
-    <div className="app">
-      <Canvas
-        shadows
-        dpr={[1, touchDevice ? 1.5 : 2]}
-        camera={{ position: phase === 'studio' ? [0, 1.5, 4.2] : [0, 3, 12], fov: 45 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
-      >
-        <Suspense
-          fallback={
-            <Html center>
-              <div className="loader inline">Đang dựng quán…</div>
-            </Html>
-          }
+    <SceneBoundary>
+      <div className="app">
+        <Canvas
+          shadows
+          dpr={[1, touchDevice ? 1.5 : 2]}
+          camera={{ position: phase === 'studio' ? [0, 1.5, 4.2] : [0, 3, 12], fov: 45 }}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
         >
-          {playing ? <World /> : phase === 'studio' ? <StudioScene focus={tab} /> : <World preview />}
-        </Suspense>
-      </Canvas>
-      {phase === 'title' && <Title />}
-      {phase === 'studio' && <Studio tab={tab} setTab={setTab} />}
-      {playing && <Hud touch={touchDevice} />}
-      <MemoryCard />
-      <Suspense fallback={<div className="loader">Đang mở cửa…</div>}>{null}</Suspense>
-    </div>
+          <Suspense
+            fallback={
+              <Html center>
+                <div className="loader inline">Đang dựng quán…</div>
+              </Html>
+            }
+          >
+            {playing ? <World /> : phase === 'studio' ? <StudioScene focus={tab} /> : <World preview />}
+          </Suspense>
+        </Canvas>
+        {phase === 'title' && <Title />}
+        {phase === 'studio' && <Studio tab={tab} setTab={setTab} />}
+        {playing && <Hud touch={touchDevice} />}
+        <MemoryCard />
+        <Suspense fallback={<div className="loader">Đang mở cửa…</div>}>{null}</Suspense>
+      </div>
+    </SceneBoundary>
   );
 }
