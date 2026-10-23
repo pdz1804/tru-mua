@@ -5,15 +5,16 @@ import { RigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 
 import { DesignerEnabled, designerUrl, type DesignerFile } from './designer-catalog';
+import { failDesigner, useDesignerStatus } from './designer-load';
 
 /** Shows `fallback` if its children throw (a model that fails to load), instead of taking the whole scene down. */
-class KeepFallback extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+class KeepFallback extends Component<{ url: string; fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   componentDidCatch(err: unknown) {
-    console.warn('designer model failed to load, keeping the code-built prop', err);
+    failDesigner(this.props.url, err);
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -142,9 +143,11 @@ function Model({ file, position = [0, 0, 0], rotation = 0, tilt = 0, scale = 1, 
 export function Designer(props: DesignerProps) {
   const { fallback = null } = props;
   const enabled = useContext(DesignerEnabled);
-  if (!enabled) return <>{fallback}</>;
+  const url = designerUrl(props.file);
+  const status = useDesignerStatus(url);
+  if (!enabled || status !== 'ready') return <>{fallback}</>;
   return (
-    <KeepFallback fallback={fallback}>
+    <KeepFallback url={url} fallback={fallback}>
       <Suspense fallback={fallback}>
         <Model {...props} />
       </Suspense>

@@ -1145,10 +1145,11 @@ function ChapterFrame({ i }: { i: number }) {
         position={[0, 0, 0.06]}
         fallback={<Prop src="furniture-kaykit/pictureframe_standing_B.gltf" height={1.25} />}
       />
-      <Text position={[0, 0.66, 0.3]} fontSize={0.13} color="#3a2a05" anchorX="center" maxWidth={1.1} textAlign="center">
+      {/* the blank field is about 0.95 m wide and 0.5 m tall: a two-line title and the date both sit inside it */}
+      <Text position={[0, 0.7, 0.3]} fontSize={0.095} lineHeight={1.1} color="#3a2a05" anchorX="center" anchorY="middle" maxWidth={0.8} textAlign="center">
         {c.title}
       </Text>
-      <Text position={[0, 0.46, 0.3]} fontSize={0.09} color="#6b5532" anchorX="center">
+      <Text position={[0, 0.51, 0.3]} fontSize={0.065} color="#6b5532" anchorX="center" anchorY="middle">
         {'Chương mưa · ' + c.date}
       </Text>
       {!done && <Sparkles position={[0, 1.2, 0]} count={14} scale={[0.9, 1.1, 0.6]} size={3.5} color="#9cc8ff" speed={0.6} />}
